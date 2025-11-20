@@ -57,14 +57,24 @@ jQuery(function($) {
         return rgbToHex(r, g, b);
     }
 
-    // ---------- Dropdown behaviour ----------
+    // ---------- Shared dropdown helpers ----------
 
     function closeAllDropdowns() {
-        $('.pct-mix-dropdown').removeClass('pct-mix-open');
-        $('.pct-mix-dropdown .pct-mix-list').attr('hidden', 'hidden');
+        $('.pct-mix-dropdown, .pct-mix-range-dropdown').each(function() {
+            var $dd = $(this);
+            $dd.removeClass('pct-mix-open');
+            $dd.find('.pct-mix-list')
+               .attr('hidden', 'hidden');
+        });
     }
 
-    function initDropdown($dropdown) {
+    $(document).on('click', function() {
+        closeAllDropdowns();
+    });
+
+    // ---------- Paint dropdowns ----------
+
+    function initPaintDropdown($dropdown) {
         var $trigger = $dropdown.find('.pct-mix-trigger');
         var $list    = $dropdown.find('.pct-mix-list');
         var $hidden  = $dropdown.find('.pct-mix-value');
@@ -75,6 +85,7 @@ jQuery(function($) {
         $trigger.on('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
+
             var isOpen = $dropdown.hasClass('pct-mix-open');
             closeAllDropdowns();
             if (!isOpen) {
@@ -84,7 +95,7 @@ jQuery(function($) {
         });
 
         // Select an option
-        $list.on('click', '.pct-mix-option', function(e) {
+        $list.on('click', '.pct-mix-option:visible', function(e) {
             e.preventDefault();
             e.stopPropagation();
 
@@ -92,13 +103,12 @@ jQuery(function($) {
             var hex   = $opt.data('hex') || '';
             var label = $opt.data('label') || '';
 
-            // Visual selected state in the list
             $list.find('.pct-mix-option').removeClass('is-selected');
             $opt.addClass('is-selected');
 
-            // Update trigger + hidden value
             $hidden.val(hex);
             $dropdown.attr('data-hex', hex);
+
             if (label) {
                 $label.text(label);
             }
@@ -110,7 +120,6 @@ jQuery(function($) {
 
             closeAllDropdowns();
 
-            // Trigger mix recalculation for this widget
             var $container = $dropdown.closest('.pct-mix-container');
             if ($container.length) {
                 updateMix($container);
@@ -118,10 +127,81 @@ jQuery(function($) {
         });
     }
 
-    // Close dropdowns when clicking outside
-    $(document).on('click', function() {
-        closeAllDropdowns();
-    });
+    // ---------- Range dropdowns ----------
+
+    function filterPaintOptions($column, rangeId) {
+        var $dropdown = $column.find('.pct-mix-dropdown');
+        var $list     = $dropdown.find('.pct-mix-list');
+        var $options  = $list.find('.pct-mix-option');
+
+        if (!rangeId) {
+            // All ranges
+            $options.show();
+        } else {
+            $options.each(function() {
+                var $opt      = $(this);
+                var optRange  = String($opt.data('range') || '');
+                var shouldShow = (optRange === String(rangeId));
+                $opt.toggle(shouldShow);
+            });
+        }
+
+        // Reset current paint selection when range changes
+        $dropdown.find('.pct-mix-value').val('');
+        $dropdown.attr('data-hex', '');
+        $list.find('.pct-mix-option').removeClass('is-selected');
+        $dropdown.find('.pct-mix-trigger-label').text('Select a paint');
+        $dropdown.find('.pct-mix-trigger-swatch').css('background-color', 'transparent');
+    }
+
+    function initRangeDropdown($dropdown) {
+        var $trigger = $dropdown.find('.pct-mix-trigger');
+        var $list    = $dropdown.find('.pct-mix-list');
+        var $hidden  = $dropdown.find('.pct-mix-range-value');
+        var $label   = $dropdown.find('.pct-mix-trigger-label');
+
+        // Open/close list
+        $trigger.on('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            var isOpen = $dropdown.hasClass('pct-mix-open');
+            closeAllDropdowns();
+            if (!isOpen) {
+                $dropdown.addClass('pct-mix-open');
+                $list.removeAttr('hidden');
+            }
+        });
+
+        // Select a range
+        $list.on('click', '.pct-mix-range-option', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            var $opt    = $(this);
+            var rangeId = $opt.data('range'); // may be "" for All
+            var label   = $opt.find('.pct-mix-option-label').text() || '';
+
+            $list.find('.pct-mix-range-option').removeClass('is-selected');
+            $opt.addClass('is-selected');
+
+            $hidden.val(rangeId);
+            if (label) {
+                $label.text(label);
+            }
+
+            closeAllDropdowns();
+
+            // Filter paints in this column based on range
+            var $column = $dropdown.closest('.pct-mix-column');
+            filterPaintOptions($column, rangeId);
+
+            var $container = $dropdown.closest('.pct-mix-container');
+            if ($container.length) {
+                updateMix($container);
+            }
+        });
+    }
 
     // ---------- Mixing logic ----------
 
@@ -138,16 +218,15 @@ jQuery(function($) {
         var partsRight = parseInt($rightParts.val(), 10);
 
         if (!hexLeft || !hexRight || !partsLeft || !partsRight || partsLeft <= 0 || partsRight <= 0) {
-            // Reset result
-            $container.find('.pct-mix-result-hex').text('—');
-            $container.find('.pct-mix-result-swatch').css('background-color', 'transparent');
+            $container.find('.pct-mix-result-hex').text('#FFFFFF');
+            $container.find('.pct-mix-result-swatch').css('background-color', '#FFFFFF');
             return;
         }
 
         var mixedHex = mixColors(hexLeft, hexRight, partsLeft, partsRight);
         if (!mixedHex) {
-            $container.find('.pct-mix-result-hex').text('—');
-            $container.find('.pct-mix-result-swatch').css('background-color', 'transparent');
+            $container.find('.pct-mix-result-hex').text('#FFFFFF');
+            $container.find('.pct-mix-result-swatch').css('background-color', '#FFFFFF');
             return;
         }
 
@@ -177,8 +256,13 @@ jQuery(function($) {
         }
     });
 
-    // Initialise all dropdown instances on load
+    // ---------- Init all dropdowns ----------
+
     $('.pct-mix-dropdown').each(function() {
-        initDropdown($(this));
+        initPaintDropdown($(this));
+    });
+
+    $('.pct-mix-range-dropdown').each(function() {
+        initRangeDropdown($(this));
     });
 });

@@ -1,6 +1,6 @@
 <?php
 /**
- * Frontend table template for Paint Table Shortcodes.
+ * Frontend table template for Paint Tracker and Mixing Helper.
  *
  * Expects:
  * - $pct_paints      : array of [ 'name', 'number', 'hex', 'links' ]

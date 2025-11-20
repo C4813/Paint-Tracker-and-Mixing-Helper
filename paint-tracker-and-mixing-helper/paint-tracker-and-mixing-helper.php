@@ -399,9 +399,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
              * (Bulk edit is handled separately in handle_bulk_edit())
              */
             if ( $has_inline_nonce && ! $has_meta_nonce ) {
-                // Checkbox present in the Quick Edit form:
-                // - if checked => $_POST['pct_on_shelf'] is set
-                // - if unchecked => it is not set at all
+                // Checkbox: checked => key present, unchecked => no key
                 $on_shelf = isset( $_POST['pct_on_shelf'] ) ? '1' : '0';
                 update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
                 return;

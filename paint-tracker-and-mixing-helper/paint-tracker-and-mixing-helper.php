@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes and tools for tracking paints, displaying paint colour tables, and importing/exporting from CSV.
- * Version: 0.2.4
+ * Version: 0.3.0
  * Author: C4813
  * Text Domain: pct
  */
@@ -26,7 +26,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_LINK     = '_pct_link'; // legacy single link
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.2.4';
+        const VERSION = '0.3.0';
 
         public function __construct() {
             add_action( 'init',                    [ $this, 'register_types' ] );
@@ -34,6 +34,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             add_action( 'add_meta_boxes',          [ $this, 'add_meta_boxes' ] );
             add_action( 'save_post_' . self::CPT,  [ $this, 'save_paint_meta' ], 10, 2 );
             add_shortcode( 'paint_table',          [ $this, 'shortcode_paint_table' ] );
+            add_shortcode( 'mixing-helper',        [ $this, 'shortcode_mixing_helper' ] );
             add_action( 'wp_enqueue_scripts',      [ $this, 'enqueue_frontend_assets' ] );
 
             // Admin assets (CSS + JS)
@@ -458,7 +459,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         }
 
         /**
-         * Enqueue front-end stylesheet (separate file).
+         * Enqueue front-end stylesheet + mixing helper JS.
          */
         public function enqueue_frontend_assets() {
             wp_enqueue_style(
@@ -466,6 +467,14 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 plugin_dir_url( __FILE__ ) . 'style.css',
                 [],
                 self::VERSION
+            );
+
+            wp_enqueue_script(
+                'pct_mixing_helper',
+                plugin_dir_url( __FILE__ ) . 'mixing-helper.js',
+                [ 'jquery' ],
+                self::VERSION,
+                true
             );
         }
 
@@ -569,6 +578,88 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
             ob_start();
             include plugin_dir_path( __FILE__ ) . 'template.php';
+            return ob_get_clean();
+        }
+
+        /**
+         * Shortcode handler for [mixing-helper].
+         *
+         * Uses template-mixing-helper.php for markup.
+         */
+        public function shortcode_mixing_helper( $atts ) {
+            // Fetch all paints (sorted by NUMBER, not title)
+            $args = [
+                'post_type'      => self::CPT,
+                'posts_per_page' => -1,
+                'post_status'    => 'publish',
+                'orderby'        => 'meta_value',
+                'order'          => 'ASC',
+                'meta_key'       => self::META_NUMBER,
+            ];
+
+            $q = new WP_Query( $args );
+
+            if ( ! $q->have_posts() ) {
+                return '<p>' . esc_html__( 'No paints found.', 'pct' ) . '</p>';
+            }
+
+            $paints = [];
+            while ( $q->have_posts() ) {
+                $q->the_post();
+                $name   = get_the_title();
+                $number = get_post_meta( get_the_ID(), self::META_NUMBER, true );
+                $hex    = get_post_meta( get_the_ID(), self::META_HEX, true );
+
+                // Skip paints without a hex colour, as we cannot mix them
+                if ( ! $hex ) {
+                    continue;
+                }
+
+                $paints[] = [
+                    'name'   => $name,
+                    'number' => $number,
+                    'hex'    => $hex,
+                ];
+            }
+            wp_reset_postdata();
+
+            if ( empty( $paints ) ) {
+                return '<p>' . esc_html__( 'No paints with hex colours found.', 'pct' ) . '</p>';
+            }
+
+            // Helper to decide text colour vs background (simple luminance check)
+            $pick_text_colour = static function( $hex ) {
+                $hex = trim( $hex );
+                if ( strpos( $hex, '#' ) === 0 ) {
+                    $hex = substr( $hex, 1 );
+                }
+                if ( strlen( $hex ) !== 6 || ! ctype_xdigit( $hex ) ) {
+                    return '#000000';
+                }
+                $r = hexdec( substr( $hex, 0, 2 ) );
+                $g = hexdec( substr( $hex, 2, 2 ) );
+                $b = hexdec( substr( $hex, 4, 2 ) );
+                // Perceived brightness
+                $brightness = ( 0.299 * $r ) + ( 0.587 * $g ) + ( 0.114 * $b );
+                return ( $brightness > 186 ) ? '#000000' : '#ffffff';
+            };
+
+            // Prepare final paint data for template
+            foreach ( $paints as &$paint ) {
+                $label = $paint['name'];
+                if ( ! empty( $paint['number'] ) ) {
+                    $label .= ' (' . $paint['number'] . ')';
+                }
+                $paint['label']      = $label;
+                $paint['text_color'] = $pick_text_colour( $paint['hex'] );
+            }
+            unset( $paint );
+
+            $pct_mixing_paints       = $paints;
+            $pct_mixing_placeholder  = __( 'Select a paint', 'pct' );
+
+            ob_start();
+            include plugin_dir_path( __FILE__ ) . 'template-mixing-helper.php';
             return ob_get_clean();
         }
 

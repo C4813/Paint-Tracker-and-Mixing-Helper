@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: Paint Table Shortcodes
- * Description: Shortcode [paint_table] to display paint colour tables (starting with Vallejo Model Color), plus CSV import.
- * Version: 0.2.2
+ * Plugin Name: Paint Tracker and Mixing Helper
+ * Description: Shortcodes and tools for tracking paints, displaying paint colour tables, and importing/exporting from CSV.
+ * Version: 0.2.3
  * Author: C4813
  * Text Domain: pct
  */
@@ -26,7 +26,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_LINK     = '_pct_link'; // legacy single link
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.1.12';
+        const VERSION = '0.2.2';
 
         public function __construct() {
             add_action( 'init',                    [ $this, 'register_types' ] );
@@ -39,8 +39,9 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             // Admin assets (CSS + JS)
             add_action( 'admin_enqueue_scripts',   [ $this, 'enqueue_admin_assets' ] );
 
-            // Admin: CSV import page
+            // Admin: CSV import & export pages
             add_action( 'admin_menu',              [ $this, 'register_import_page' ] );
+            add_action( 'admin_menu',              [ $this, 'register_export_page' ] );
 
             // Admin: list table columns & sorting
             add_filter( 'manage_edit-' . self::CPT . '_columns',          [ $this, 'admin_columns' ] );
@@ -116,22 +117,23 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 return;
             }
 
+            // Use main stylesheet (contains both frontend + admin rules)
             wp_enqueue_style(
                 'pct_paint_table_admin',
-                plugin_dir_url( __FILE__ ) . 'admin-style.css',
+                plugin_dir_url( __FILE__ ) . 'style.css',
                 [],
                 self::VERSION
             );
 
             wp_enqueue_script(
                 'pct_paint_table_admin',
-                plugin_dir_url( __FILE__ ) . 'admin.js',
+                plugin_dir_url( __FILE__ ) . 'admin/script.js',
                 [ 'jquery' ],
                 self::VERSION,
                 true
             );
 
-            // Localise strings for admin.js (for labels/placeholders)
+            // Localise strings for admin/script.js (for labels/placeholders)
             wp_localize_script(
                 'pct_paint_table_admin',
                 'pctAdmin',
@@ -341,7 +343,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         }
 
         /**
-         * Render the meta box HTML (delegated to admin-template.php).
+         * Render the meta box HTML (delegated to admin/template.php).
          */
         public function render_paint_meta_box( $post ) {
 
@@ -386,7 +388,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $pct_on_shelf    = $on_shelf;
             $pct_links       = $links;
 
-            include plugin_dir_path( __FILE__ ) . 'admin-template.php';
+            include plugin_dir_path( __FILE__ ) . 'admin/template.php';
         }
 
         /**
@@ -666,8 +668,22 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         }
 
         /**
+         * Register "Export to CSV" submenu.
+         */
+        public function register_export_page() {
+            add_submenu_page(
+                'edit.php?post_type=' . self::CPT,
+                __( 'Export Paints to CSV', 'pct' ),
+                __( 'Export to CSV', 'pct' ),
+                'manage_options',
+                'pct-export-paints',
+                [ $this, 'render_export_page' ]
+            );
+        }
+
+        /**
          * Render the CSV import page + handle form submission.
-         * Delegates HTML to admin-template.php.
+         * Delegates HTML to admin/template.php.
          */
         public function render_import_page() {
             if ( ! current_user_can( 'manage_options' ) ) {
@@ -719,26 +735,26 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                                 if ( count( $data ) < 3 ) {
                                     continue;
                                 }
-                                
+
                                 $name   = trim( $data[0] );
                                 $number = trim( $data[1] );
                                 $hex    = trim( $data[2] );
-                                
+
                                 // Optional 4th column: On shelf (yes/no)
                                 $on_shelf_raw = isset( $data[3] ) ? trim( $data[3] ) : '';
                                 $on_shelf_val = '0';
-                                
+
                                 if ( $on_shelf_raw !== '' ) {
                                     $lower = strtolower( $on_shelf_raw );
                                     if ( in_array( $lower, [ 'yes', 'y', '1', 'true' ], true ) ) {
                                         $on_shelf_val = '1';
                                     }
                                 }
-                                
+
                                 if ( '' === $name ) {
                                     continue;
                                 }
-                                
+
                                 $post_id = wp_insert_post(
                                     [
                                         'post_type'   => self::CPT,
@@ -746,7 +762,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                                         'post_title'  => $name,
                                     ]
                                 );
-                                
+
                                 if ( ! is_wp_error( $post_id ) && $post_id ) {
                                     update_post_meta( $post_id, self::META_NUMBER,   $number );
                                     update_post_meta( $post_id, self::META_HEX,      $hex );
@@ -772,7 +788,121 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $pct_import_msg    = $message;
             $pct_import_errors = $errors;
 
-            include plugin_dir_path( __FILE__ ) . 'admin-template.php';
+            include plugin_dir_path( __FILE__ ) . 'admin/template.php';
+        }
+
+        /**
+         * Render the CSV export page and handle export submission.
+         * Delegates HTML to admin/template.php when not exporting.
+         */
+        public function render_export_page() {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_die( esc_html__( 'You do not have permission to access this page.', 'pct' ) );
+            }
+
+            $errors = [];
+
+            // If the export form was submitted, stream the CSV and exit.
+            if ( isset( $_POST['pct_export_submit'] ) ) {
+                check_admin_referer( 'pct_export_paints', 'pct_export_nonce' );
+
+                $range_id = isset( $_POST['pct_range'] ) ? intval( $_POST['pct_range'] ) : 0;
+                $shelf    = isset( $_POST['pct_shelf'] ) ? sanitize_text_field( wp_unslash( $_POST['pct_shelf'] ) ) : 'any';
+
+                if ( ! $range_id ) {
+                    $errors[] = __( 'Please choose a paint range.', 'pct' );
+                }
+
+                if ( empty( $errors ) ) {
+                    $term = get_term( $range_id, self::TAX );
+
+                    $args = [
+                        'post_type'      => self::CPT,
+                        'posts_per_page' => -1,
+                        'post_status'    => 'publish',
+                        'orderby'        => 'meta_value',
+                        'order'          => 'ASC',
+                        'meta_key'       => self::META_NUMBER,
+                        'tax_query'      => [
+                            [
+                                'taxonomy' => self::TAX,
+                                'field'    => 'term_id',
+                                'terms'    => $range_id,
+                            ],
+                        ],
+                    ];
+
+                    // Optional shelf filter
+                    if ( strtolower( $shelf ) === 'yes' ) {
+                        $args['meta_query'] = [
+                            [
+                                'key'     => self::META_ON_SHELF,
+                                'value'   => '1',
+                                'compare' => '=',
+                            ],
+                        ];
+                    }
+
+                    $q = new WP_Query( $args );
+
+                    // Prepare filename (fallback if term is missing)
+                    $slug = ( $term && ! is_wp_error( $term ) && ! empty( $term->slug ) )
+                        ? $term->slug
+                        : 'paints';
+
+                    $filename = sprintf(
+                        '%s-export-%s.csv',
+                        $slug,
+                        gmdate( 'Ymd-His' )
+                    );
+
+                    // Make sure nothing else is sent before headers
+                    if ( ob_get_length() ) {
+                        @ob_end_clean();
+                    }
+
+                    nocache_headers();
+                    header( 'Content-Type: text/csv; charset=utf-8' );
+                    header( 'Content-Disposition: attachment; filename=' . $filename );
+
+                    $output = fopen( 'php://output', 'w' );
+
+                    // CSV header row as requested
+                    fputcsv( $output, [ 'Name', 'Number', 'Hex', 'On shelf' ] );
+
+                    if ( $q->have_posts() ) {
+                        while ( $q->have_posts() ) {
+                            $q->the_post();
+                            $post_id  = get_the_ID();
+                            $name     = get_the_title();
+                            $number   = get_post_meta( $post_id, self::META_NUMBER, true );
+                            $hex      = get_post_meta( $post_id, self::META_HEX, true );
+                            $on_shelf = get_post_meta( $post_id, self::META_ON_SHELF, true );
+                            $on_shelf = ( $on_shelf === '1' ) ? 'yes' : 'no';
+
+                            fputcsv(
+                                $output,
+                                [
+                                    $name,
+                                    $number,
+                                    $hex,
+                                    $on_shelf,
+                                ]
+                            );
+                        }
+                        wp_reset_postdata();
+                    }
+
+                    fclose( $output );
+                    exit; // Stop normal page rendering – we just output a file
+                }
+            }
+
+            // First load OR validation errors: show the Export form.
+            $pct_admin_view    = 'export_page';
+            $pct_export_errors = $errors;
+
+            include plugin_dir_path( __FILE__ ) . 'admin/template.php';
         }
     }
 }

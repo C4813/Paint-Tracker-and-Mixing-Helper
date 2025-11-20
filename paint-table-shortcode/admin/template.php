@@ -1,10 +1,11 @@
 <?php
 /**
- * Admin template for Paint Table Shortcodes plugin.
+ * Admin template for Paint Tracker and Mixing Helper plugin.
  *
  * Uses $pct_admin_view to decide what to render:
- * - 'meta_box'   : paint details meta box
- * - 'import_page': CSV import page
+ * - 'meta_box'    : paint details meta box
+ * - 'import_page' : CSV import page
+ * - 'export_page' : CSV export page
  */
 
 if ( ! isset( $pct_admin_view ) ) {
@@ -156,6 +157,67 @@ elseif ( 'import_page' === $pct_admin_view ) : ?>
             </table>
 
             <?php submit_button( __( 'Import paints', 'pct' ), 'primary', 'pct_import_submit' ); ?>
+        </form>
+    </div>
+
+<?php
+elseif ( 'export_page' === $pct_admin_view ) : ?>
+
+    <div class="wrap">
+        <h1><?php esc_html_e( 'Export Paints to CSV', 'pct' ); ?></h1>
+
+        <?php
+        $errors = isset( $pct_export_errors ) && is_array( $pct_export_errors ) ? $pct_export_errors : [];
+
+        if ( ! empty( $errors ) ) : ?>
+            <div class="notice notice-error">
+                <p><?php echo implode( '<br>', array_map( 'esc_html', $errors ) ); ?></p>
+            </div>
+        <?php endif; ?>
+
+        <p>
+            <?php esc_html_e( 'Generate a CSV file with one paint per row.', 'pct' ); ?>
+        </p>
+        <p>
+            <?php esc_html_e( 'Columns: name, number, hex colour, on shelf (yes/no).', 'pct' ); ?>
+        </p>
+
+        <form method="post">
+            <?php wp_nonce_field( 'pct_export_paints', 'pct_export_nonce' ); ?>
+
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th scope="row">
+                        <label for="pct_range"><?php esc_html_e( 'Paint range', 'pct' ); ?></label>
+                    </th>
+                    <td>
+                        <?php
+                        wp_dropdown_categories(
+                            [
+                                'taxonomy'         => PCT_Paint_Table_Plugin::TAX,
+                                'name'             => 'pct_range',
+                                'id'               => 'pct_range',
+                                'hide_empty'       => false,
+                                'show_option_none' => __( 'Select a range', 'pct' ),
+                            ]
+                        );
+                        ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="pct_shelf"><?php esc_html_e( 'On shelf filter', 'pct' ); ?></label>
+                    </th>
+                    <td>
+                        <select name="pct_shelf" id="pct_shelf">
+                            <option value="any"><?php esc_html_e( 'All paints in range', 'pct' ); ?></option>
+                            <option value="yes"><?php esc_html_e( 'Only paints marked as on shelf', 'pct' ); ?></option>
+                        </select>
+                    </td>
+                </tr>
+            </table>
+
+            <?php submit_button( __( 'Download CSV', 'pct' ), 'primary', 'pct_export_submit' ); ?>
         </form>
     </div>
 

@@ -57,6 +57,13 @@ jQuery(function($) {
         return rgbToHex(r, g, b);
     }
 
+    function textColorForHex(hex) {
+        var c = hexToRgb(hex);
+        if (!c) return '#111827';
+        var lum = (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255;
+        return lum < 0.5 ? '#f9fafb' : '#111827';
+    }
+
     // ---------- Shared dropdown helpers ----------
 
     function closeAllDropdowns() {
@@ -112,17 +119,24 @@ jQuery(function($) {
             if (label) {
                 $label.text(label);
             }
-            if (hex) {
-                $swatch.css('background-color', hex);
-            } else {
-                $swatch.css('background-color', 'transparent');
+            if ($swatch.length) {
+                if (hex) {
+                    $swatch.css('background-color', hex);
+                } else {
+                    $swatch.css('background-color', 'transparent');
+                }
             }
 
             closeAllDropdowns();
 
-            var $container = $dropdown.closest('.pct-mix-container');
-            if ($container.length) {
-                updateMix($container);
+            var $mixContainer   = $dropdown.closest('.pct-mix-container');
+            var $shadeContainer = $dropdown.closest('.pct-shade-container');
+
+            if ($mixContainer.length) {
+                updateMix($mixContainer);
+            }
+            if ($shadeContainer.length) {
+                updateShadeScale($shadeContainer);
             }
         });
     }
@@ -196,42 +210,72 @@ jQuery(function($) {
             var $column = $dropdown.closest('.pct-mix-column');
             filterPaintOptions($column, rangeId);
 
-            var $container = $dropdown.closest('.pct-mix-container');
-            if ($container.length) {
-                updateMix($container);
+            var $mixContainer   = $dropdown.closest('.pct-mix-container');
+            var $shadeContainer = $dropdown.closest('.pct-shade-container');
+
+            if ($mixContainer.length) {
+                updateMix($mixContainer);
+            }
+            if ($shadeContainer.length) {
+                updateShadeScale($shadeContainer);
             }
         });
     }
 
-    // ---------- Mixing logic ----------
-
+    // ---------- Mixing logic (two-paint mixer) ----------
+    
     function updateMix($container) {
         var $leftDropdown  = $container.find('.pct-mix-dropdown-left');
         var $rightDropdown = $container.find('.pct-mix-dropdown-right');
         var $leftParts     = $container.find('.pct-mix-parts-left');
         var $rightParts    = $container.find('.pct-mix-parts-right');
-
+    
         var hexLeft  = $leftDropdown.find('.pct-mix-value').val() || '';
         var hexRight = $rightDropdown.find('.pct-mix-value').val() || '';
-
+    
         var partsLeft  = parseInt($leftParts.val(), 10);
         var partsRight = parseInt($rightParts.val(), 10);
-
-        if (!hexLeft || !hexRight || !partsLeft || !partsRight || partsLeft <= 0 || partsRight <= 0) {
-            $container.find('.pct-mix-result-hex').text('#FFFFFF');
-            $container.find('.pct-mix-result-swatch').css('background-color', '#FFFFFF');
+    
+        var $resultBlock  = $container.find('.pct-mix-result-block');
+        var $resultHex    = $container.find('.pct-mix-result-hex');
+        var $resultSwatch = $container.find('.pct-mix-result-swatch');
+    
+        if (!$resultBlock.length) {
             return;
         }
-
+    
+        // Hide the old circle swatch
+        if ($resultSwatch.length) {
+            $resultSwatch.hide();
+        }
+    
+        // If anything is missing/invalid, just hide the whole result row
+        if (!hexLeft || !hexRight || !partsLeft || !partsRight ||
+            partsLeft <= 0 || partsRight <= 0) {
+    
+            $resultBlock.hide();
+            return;
+        }
+    
         var mixedHex = mixColors(hexLeft, hexRight, partsLeft, partsRight);
         if (!mixedHex) {
-            $container.find('.pct-mix-result-hex').text('#FFFFFF');
-            $container.find('.pct-mix-result-swatch').css('background-color', '#FFFFFF');
+            $resultBlock.hide();
             return;
         }
-
-        $container.find('.pct-mix-result-hex').text(mixedHex.toUpperCase());
-        $container.find('.pct-mix-result-swatch').css('background-color', mixedHex);
+    
+        mixedHex = mixedHex.toUpperCase();
+    
+        if ($resultHex.length) {
+            $resultHex.text(mixedHex);
+        }
+    
+        $resultBlock.css({
+            'background-color': mixedHex,
+            'color': textColorForHex(mixedHex)
+        });
+    
+        // Show once we have a valid result
+        $resultBlock.show();
     }
 
     // Parts inputs: enforce whole numbers > 0
@@ -250,11 +294,208 @@ jQuery(function($) {
 
         $input.val(num);
 
-        var $container = $input.closest('.pct-mix-container');
-        if ($container.length) {
-            updateMix($container);
+        var $mixContainer = $input.closest('.pct-mix-container');
+        if ($mixContainer.length) {
+            updateMix($mixContainer);
         }
     });
+
+    // ---------- Shade range helper ----------
+
+    function updateShadeScale($container) {
+        var $shadeHelper = $container.find('.pct-shade-helper');
+        if (!$shadeHelper.length) {
+            return;
+        }
+
+        var $shadeColumn = $shadeHelper.find('.pct-mix-column-shade');
+        var $scale       = $shadeHelper.find('.pct-shade-scale');
+        if (!$shadeColumn.length || !$scale.length) {
+            return;
+        }
+
+        var $paintDropdown = $shadeColumn.find('.pct-mix-dropdown-shade');
+        var baseHex        = $paintDropdown.find('.pct-mix-value').val() || '';
+
+        if (!baseHex) {
+            $scale.html(
+                '<p class="pct-shade-empty">Select a paint to see lighter and darker mixes.</p>'
+            );
+            return;
+        }
+
+        var baseRgb = hexToRgb(baseHex);
+        if (!baseRgb) {
+            $scale.html(
+                '<p class="pct-shade-empty">This colour has an invalid hex value.</p>'
+            );
+            return;
+        }
+
+        // find the selected option for this base colour
+        var $selectedOption = $paintDropdown.find('.pct-mix-option.is-selected').first();
+        if (!$selectedOption.length) {
+            // Fallback: match by hex
+            $paintDropdown.find('.pct-mix-option').each(function () {
+                var $opt = $(this);
+                var optHex = ($opt.data('hex') || '').toString().toLowerCase();
+                if (optHex === baseHex.toString().toLowerCase()) {
+                    $selectedOption = $opt;
+                    return false; // break
+                }
+            });
+        }
+
+        if (!$selectedOption.length) {
+            $scale.html(
+                '<p class="pct-shade-empty">Could not determine the selected paint in this range.</p>'
+            );
+            return;
+        }
+
+        var baseRangeId = $selectedOption.data('range');
+        if (!baseRangeId && baseRangeId !== 0) {
+            $scale.html(
+                '<p class="pct-shade-empty">This paint is not assigned to a range.</p>'
+            );
+            return;
+        }
+
+        var baseLabel = $selectedOption.data('label') || '';
+
+        var darkest = null;
+        var lightest = null;
+
+        // Collect paints in the same range and find darkest/lightest anchors
+        $paintDropdown.find('.pct-mix-option').each(function () {
+            var $opt  = $(this);
+            var optHex = $opt.data('hex') || '';
+            var optRange = $opt.data('range');
+
+            if (!optHex || String(optRange) !== String(baseRangeId)) {
+                return;
+            }
+
+            // Skip the base colour itself when choosing anchors
+            if (optHex.toString().toLowerCase() === baseHex.toString().toLowerCase()) {
+                return;
+            }
+
+            var rgb = hexToRgb(optHex);
+            if (!rgb) {
+                return;
+            }
+
+            var lum = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+            var label = $opt.data('label') || '';
+
+            if (!darkest || lum < darkest.lum) {
+                darkest = { hex: optHex, lum: lum, label: label };
+            }
+            if (!lightest || lum > lightest.lum) {
+                lightest = { hex: optHex, lum: lum, label: label };
+            }
+        });
+
+        if (!darkest && !lightest) {
+            $scale.html(
+                '<p class="pct-shade-empty">Not enough paints in this range to build a shade ladder.</p>'
+            );
+            return;
+        }
+
+        // Ratios: [partsBase, partsOther]
+        // Darkest at the top (more darkener), then approach base
+        var darkerRatios = [
+            [1, 3], // darkest: 1 base, 3 darkener
+            [1, 1],
+            [3, 1]  // closest to base: 3 base, 1 darkener
+        ];
+        // For lighter mixes: closest to base first after base, then lightest
+        var lighterRatios = [
+            [3, 1], // closest to base: 3 base, 1 lightener
+            [1, 1],
+            [1, 3]  // lightest: 1 base, 3 lightener
+        ];
+
+        var rows = [];
+
+        if (darkest) {
+            darkerRatios.forEach(function (pair) {
+                var mixed = mixColors(baseHex, darkest.hex, pair[0], pair[1]);
+                if (!mixed) {
+                    return;
+                }
+                rows.push({
+                    type: 'darker',
+                    ratio: pair,
+                    hex: mixed.toUpperCase(),
+                    otherLabel: darkest.label || ''
+                });
+            });
+        }
+
+        // Base in the centre
+        rows.push({
+            type: 'base',
+            ratio: null,
+            hex: baseHex.toUpperCase(),
+            baseLabel: baseLabel
+        });
+
+        if (lightest) {
+            lighterRatios.forEach(function (pair) {
+                var mixed = mixColors(baseHex, lightest.hex, pair[0], pair[1]);
+                if (!mixed) {
+                    return;
+                }
+                rows.push({
+                    type: 'lighter',
+                    ratio: pair,
+                    hex: mixed.toUpperCase(),
+                    otherLabel: lightest.label || ''
+                });
+            });
+        }
+
+        if (!rows.length) {
+            $scale.html(
+                '<p class="pct-shade-empty">Unable to generate mixes for this colour.</p>'
+            );
+            return;
+        }
+
+        var html = '';
+        rows.forEach(function (row) {
+            var mainText = '';
+            var textColor = textColorForHex(row.hex);
+
+            if (row.type === 'base') {
+                // Centre row: just the base paint name
+                mainText = row.baseLabel || '';
+            } else {
+                var otherLabel = row.otherLabel || '';
+                var partsBase  = row.ratio ? row.ratio[0] : 0;
+                var partsOther = row.ratio ? row.ratio[1] : 0;
+
+                if (otherLabel && baseLabel && partsBase && partsOther) {
+                    mainText = otherLabel + ' ' + partsOther + ' : ' + partsBase + ' ' + baseLabel;
+                } else {
+                    mainText = row.hex;
+                }
+            }
+
+            html += '<div class="pct-shade-row pct-shade-row-' + row.type +
+                    '" style="background-color:' + row.hex + ';color:' + textColor + ';">';
+            html += '  <div class="pct-shade-meta">';
+            html += '    <div class="pct-shade-ratio">' + mainText + '</div>';
+            html += '    <div class="pct-shade-hex">' + row.hex + '</div>';
+            html += '  </div>';
+            html += '</div>';
+        });
+
+        $scale.html(html);
+    }
 
     // ---------- Init all dropdowns ----------
 

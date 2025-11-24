@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes and tools for tracking paints, displaying paint colour tables, and importing/exporting from CSV.
- * Version: 0.6.0
+ * Version: 0.6.1
  * Author: C4813
  * Text Domain: pct
  */
@@ -26,7 +26,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_LINK     = '_pct_link'; // legacy single link
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.6.0';
+        const VERSION = '0.6.1';
 
         public function __construct() {
             add_action( 'init',                    [ $this, 'register_types' ] );
@@ -506,9 +506,10 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             wp_reset_postdata();
 
             // Make data available to the template
-            $pct_paints           = $paints_data;
-            $pct_range_title      = $range_title;
-            $pct_mixing_page_url  = get_option( 'pct_mixing_page_url', '' );
+            $pct_paints              = $paints_data;
+            $pct_range_title         = $range_title;
+            $pct_mixing_page_url     = get_option( 'pct_mixing_page_url', '' );
+            $pct_table_display_mode  = get_option( 'pct_table_display_mode', 'dots' );
 
             ob_start();
             include plugin_dir_path( __FILE__ ) . 'templates/paint-display.php';
@@ -852,8 +853,9 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         }
 
         /**
-         * Render the Info & Settings page and handle saving the URL option.
-         * Delegates HTML to admin/admin-page.php.
+         * Render the Info & Settings page and handle saving options.
+         * - Shading page URL (for [shade-helper] deep-linking from [paint_table])
+         * - Paint table display mode (colour dots vs full row highlight)
          */
         public function render_info_settings_page() {
             if ( ! current_user_can( 'manage_options' ) ) {
@@ -862,21 +864,36 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
             $message = '';
 
-            if ( isset( $_POST['pct_info_settings_submit'] ) ) {
-                check_admin_referer( 'pct_info_settings', 'pct_info_settings_nonce' );
+            // Load existing values first
+            $info_url = get_option( 'pct_mixing_page_url', '' );
+            $mode     = get_option( 'pct_table_display_mode', 'dots' );
 
-                $url = '';
+            // Save if the Info & Settings nonce is present and valid
+            if (
+                isset( $_POST['pct_info_settings_nonce'] )
+                && wp_verify_nonce( $_POST['pct_info_settings_nonce'], 'pct_info_settings' )
+            ) {
+                // Shading page URL (may or may not be present depending on which form posted)
                 if ( isset( $_POST['pct_mixing_page_url'] ) ) {
-                    $url = esc_url_raw( wp_unslash( $_POST['pct_mixing_page_url'] ) );
+                    $info_url = esc_url_raw( wp_unslash( $_POST['pct_mixing_page_url'] ) );
+                    update_option( 'pct_mixing_page_url', $info_url );
                 }
 
-                update_option( 'pct_mixing_page_url', $url );
+                // Paint table display mode (may or may not be present depending on which form posted)
+                if ( isset( $_POST['pct_table_display_mode'] ) ) {
+                    $mode_raw = sanitize_text_field( wp_unslash( $_POST['pct_table_display_mode'] ) );
+                    $mode     = in_array( $mode_raw, [ 'dots', 'rows' ], true ) ? $mode_raw : 'dots';
+                    update_option( 'pct_table_display_mode', $mode );
+                }
+
                 $message = __( 'Settings saved.', 'pct' );
             }
 
-            $pct_admin_view   = 'info_settings';
-            $pct_info_message = $message;
-            $pct_info_url     = get_option( 'pct_mixing_page_url', '' );
+            // Pass values to the template
+            $pct_admin_view           = 'info_settings';
+            $pct_info_message         = $message;
+            $pct_info_url             = $info_url;
+            $pct_table_display_mode   = $mode;
 
             include plugin_dir_path( __FILE__ ) . 'admin/admin-page.php';
         }

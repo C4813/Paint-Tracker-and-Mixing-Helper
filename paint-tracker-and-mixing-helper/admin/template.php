@@ -3,9 +3,10 @@
  * Admin template for Paint Tracker and Mixing Helper plugin.
  *
  * Uses $pct_admin_view to decide what to render:
- * - 'meta_box'    : paint details meta box
- * - 'import_page' : CSV import page
- * - 'export_page' : CSV export page
+ * - 'meta_box'      : paint details meta box
+ * - 'import_page'   : CSV import page
+ * - 'info_settings' : info & settings page
+ * - 'export_page'   : CSV export page
  */
 
 if ( ! isset( $pct_admin_view ) ) {
@@ -19,15 +20,15 @@ if ( 'meta_box' === $pct_admin_view ) : ?>
     <p>
         <label for="pct_number"><strong><?php esc_html_e( 'Paint number', 'pct' ); ?></strong> (e.g. 70.800)</label><br>
         <input type="text" id="pct_number" name="pct_number"
-               value="<?php echo isset( $pct_number ) ? esc_attr( $pct_number ) : ''; ?>"
-               class="regular-text">
+            value="<?php echo isset( $pct_number ) ? esc_attr( $pct_number ) : ''; ?>"
+            class="regular-text">
     </p>
 
     <p>
         <label for="pct_hex"><strong><?php esc_html_e( 'Hex colour', 'pct' ); ?></strong> (e.g. #2f353a)</label><br>
         <input type="text" id="pct_hex" name="pct_hex"
-               value="<?php echo isset( $pct_hex ) ? esc_attr( $pct_hex ) : ''; ?>"
-               class="regular-text">
+            value="<?php echo isset( $pct_hex ) ? esc_attr( $pct_hex ) : ''; ?>"
+            class="regular-text">
     </p>
 
     <p>
@@ -64,20 +65,20 @@ if ( 'meta_box' === $pct_admin_view ) : ?>
                     <label>
                         <?php esc_html_e( 'Link title', 'pct' ); ?><br>
                         <input type="text"
-                               name="pct_links_title[]"
-                               value="<?php echo esc_attr( $ltitle ); ?>"
-                               class="regular-text"
-                               placeholder="<?php esc_attr_e( 'e.g. Tutorial, Review, Example Build', 'pct' ); ?>">
+                            name="pct_links_title[]"
+                            value="<?php echo esc_attr( $ltitle ); ?>"
+                            class="regular-text"
+                            placeholder="<?php esc_attr_e( 'e.g. Tutorial, Review, Example Build', 'pct' ); ?>">
                     </label>
                 </p>
                 <p class="pct-link-row-field">
                     <label>
                         <?php esc_html_e( 'Link URL', 'pct' ); ?><br>
                         <input type="url"
-                               name="pct_links_url[]"
-                               value="<?php echo esc_attr( $lurl ); ?>"
-                               class="regular-text"
-                               placeholder="https://example.com/my-article">
+                            name="pct_links_url[]"
+                            value="<?php echo esc_attr( $lurl ); ?>"
+                            class="regular-text"
+                            placeholder="https://example.com/my-article">
                     </label>
                 </p>
                 <p class="pct-link-row-field">
@@ -167,7 +168,7 @@ elseif ( 'info_settings' === $pct_admin_view ) : ?>
         <h1><?php esc_html_e( 'Info & Settings', 'pct' ); ?></h1>
 
         <?php
-        $message = isset( $pct_info_message ) ? $pct_info_message : '';
+        $message  = isset( $pct_info_message ) ? $pct_info_message : '';
         $info_url = isset( $pct_info_url ) ? $pct_info_url : '';
 
         if ( $message ) : ?>
@@ -184,17 +185,17 @@ elseif ( 'info_settings' === $pct_admin_view ) : ?>
             <table class="form-table" role="presentation">
                 <tr>
                     <th scope="row">
-                        <label for="pct_mixing_page_url"><?php esc_html_e( 'Mixing page URL', 'pct' ); ?></label>
+                        <label for="pct_mixing_page_url"><?php esc_html_e( 'Shading page URL', 'pct' ); ?></label>
                     </th>
                     <td>
                         <input type="url"
-                               name="pct_mixing_page_url"
-                               id="pct_mixing_page_url"
-                               class="regular-text"
-                               value="<?php echo esc_attr( $info_url ); ?>"
-                               placeholder="https://example.com/mixing-helper">
+                            name="pct_mixing_page_url"
+                            id="pct_mixing_page_url"
+                            class="regular-text"
+                            value="<?php echo esc_attr( $info_url ); ?>"
+                            placeholder="https://example.com/mixing-helper">
                         <p class="description">
-                            <?php esc_html_e( 'Enter the URL of the page where you are using the [mixing-helper] shortcode. This is used when clicking a paint from the [paint_table] shortcode.', 'pct' ); ?>
+                            <?php esc_html_e( 'Enter the URL of the page where you are using the [shade-helper] shortcode. This is used when clicking a paint from the [paint_table] shortcode.', 'pct' ); ?>
                         </p>
                     </td>
                 </tr>
@@ -206,7 +207,6 @@ elseif ( 'info_settings' === $pct_admin_view ) : ?>
 
 <?php
 elseif ( 'export_page' === $pct_admin_view ) : ?>
-
 
     <div class="wrap">
         <h1><?php esc_html_e( 'Export Paints to CSV', 'pct' ); ?></h1>

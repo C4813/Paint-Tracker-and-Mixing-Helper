@@ -170,6 +170,7 @@ elseif ( 'info_settings' === $pct_admin_view ) : ?>
         <?php
         $message  = isset( $pct_info_message ) ? $pct_info_message : '';
         $info_url = isset( $pct_info_url ) ? $pct_info_url : '';
+        $mode     = isset( $pct_table_display_mode ) ? $pct_table_display_mode : 'dots';
 
         if ( $message ) : ?>
             <div class="notice notice-success is-dismissible">
@@ -181,6 +182,8 @@ elseif ( 'info_settings' === $pct_admin_view ) : ?>
         <p>
             <?php esc_html_e( 'Paint Tracker and Mixing Helper helps you keep a structured list of your miniature paints, track which ones you currently own, link each paint to useful resources, and provide interactive colour tools on the front end.', 'pct' ); ?>
         </p>
+
+        <hr>
 
         <h2><?php esc_html_e( 'How the data is stored', 'pct' ); ?></h2>
         <p>
@@ -196,6 +199,8 @@ elseif ( 'info_settings' === $pct_admin_view ) : ?>
                 – <?php esc_html_e( 'group paints into ranges such as Vallejo Model Color, Vallejo Game Color, and so on.', 'pct' ); ?>
             </li>
         </ul>
+
+        <hr>
 
         <h2><?php esc_html_e( 'Shortcodes', 'pct' ); ?></h2>
 
@@ -215,9 +220,48 @@ elseif ( 'info_settings' === $pct_admin_view ) : ?>
             <br>
             <code>[paint_table range="vallejo-model-color" limit="-1" orderby="meta_number" shelf="any"]</code>
         </p>
+
+        <h4><?php esc_html_e( 'Paint table display', 'pct' ); ?></h4>
         <p>
-            <?php esc_html_e( 'If you set the Shading page URL below, clicking a colour swatch in this table will open your Shade helper page with that colour pre-selected.', 'pct' ); ?>
+            <?php esc_html_e( 'Use the option below to choose whether the paint table shows small colour dots (swatches) or highlights the entire row with the paint colour.', 'pct' ); ?>
         </p>
+
+        <!-- Form 1: Paint table display (auto-saves, no button) -->
+        <form method="post">
+            <?php wp_nonce_field( 'pct_info_settings', 'pct_info_settings_nonce' ); ?>
+
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th scope="row">
+                        <label><?php esc_html_e( 'Paint table display', 'pct' ); ?></label>
+                    </th>
+                    <td>
+                        <fieldset>
+                            <label>
+                                <input type="radio"
+                                    name="pct_table_display_mode"
+                                    value="dots"
+                                    <?php checked( $mode, 'dots' ); ?> />
+                                <?php esc_html_e( 'Show colour dots (swatch column)', 'pct' ); ?>
+                            </label>
+                            <br>
+                            <label>
+                                <input type="radio"
+                                    name="pct_table_display_mode"
+                                    value="rows"
+                                    <?php checked( $mode, 'rows' ); ?> />
+                                <?php esc_html_e( 'Highlight the entire row with the paint colour', 'pct' ); ?>
+                            </label>
+                            <p class="description">
+                                <?php esc_html_e( 'Row highlighting applies the paint colour to the whole row and adjusts text to light/dark for readability.', 'pct' ); ?>
+                            </p>
+                        </fieldset>
+                    </td>
+                </tr>
+            </table>
+        </form>
+
+        <hr>
 
         <h3><?php esc_html_e( '[mixing-helper]', 'pct' ); ?></h3>
         <p>
@@ -227,13 +271,52 @@ elseif ( 'info_settings' === $pct_admin_view ) : ?>
             <?php esc_html_e( 'Each paint dropdown can be filtered by range so you can quickly find the colours you want to mix.', 'pct' ); ?>
         </p>
 
+        <hr>
+
         <h3><?php esc_html_e( '[shade-helper]', 'pct' ); ?></h3>
         <p>
             <?php esc_html_e( 'Shows the shade helper as a standalone tool. Choose a paint and the plugin will look for the darkest and lightest paints in the same range, then build a small ladder of lighter and darker mixes using those anchor colours.', 'pct' ); ?>
         </p>
         <p>
-            <?php esc_html_e( 'If a visitor arrives from the paint table by clicking a swatch, the shade helper can start with that colour already selected.', 'pct' ); ?>
+            <?php esc_html_e( 'If a visitor arrives from the paint table by clicking a swatch or row, the shade helper can start with that colour already selected.', 'pct' ); ?>
         </p>
+
+        <h4><?php esc_html_e( 'Shading page URL', 'pct' ); ?></h4>
+        <p>
+            <?php esc_html_e( 'This setting tells the plugin where your Shade helper page lives. It should be the URL of the page where you are using the [shade-helper] shortcode.', 'pct' ); ?>
+        </p>
+        <p>
+            <?php esc_html_e( 'When this URL is set, the colour swatches (or highlighted rows, if you use row mode) in your [paint_table] output become links. Clicking them will take the visitor to your Shade helper page and automatically pass the clicked colour so that the ladder is built around that paint.', 'pct' ); ?>
+        </p>
+        <p>
+            <?php esc_html_e( 'If you leave this field empty, the swatches/rows remain as simple colour indicators and are not clickable.', 'pct' ); ?>
+        </p>
+
+        <!-- Form 2: Shading page URL (auto-saves, no button) -->
+        <form method="post">
+            <?php wp_nonce_field( 'pct_info_settings', 'pct_info_settings_nonce' ); ?>
+
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th scope="row">
+                        <label for="pct_mixing_page_url"><?php esc_html_e( 'Shading page URL', 'pct' ); ?></label>
+                    </th>
+                    <td>
+                        <input type="url"
+                            name="pct_mixing_page_url"
+                            id="pct_mixing_page_url"
+                            class="regular-text"
+                            value="<?php echo esc_attr( $info_url ); ?>"
+                            placeholder="https://example.com/shade-helper">
+                        <p class="description">
+                            <?php esc_html_e( 'Enter the URL of the page where you are using the [shade-helper] shortcode.', 'pct' ); ?>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </form>
+
+        <hr>
 
         <h2><?php esc_html_e( 'Importing paints from CSV', 'pct' ); ?></h2>
         <p>
@@ -254,6 +337,8 @@ elseif ( 'info_settings' === $pct_admin_view ) : ?>
             <?php esc_html_e( 'An optional header row with column names (title, number, hex, on_shelf) is supported and will be detected automatically.', 'pct' ); ?>
         </p>
 
+        <hr>
+
         <h2><?php esc_html_e( 'Exporting paints to CSV', 'pct' ); ?></h2>
         <p>
             <?php esc_html_e( 'Under “Paint Colours → Export to CSV” you can download your paint collection as a CSV file.', 'pct' ); ?>
@@ -270,104 +355,8 @@ elseif ( 'info_settings' === $pct_admin_view ) : ?>
             <li><?php esc_html_e( 'on_shelf – 0 or 1', 'pct' ); ?></li>
             <li><?php esc_html_e( 'ranges – list of range names (pipe-separated if more than one).', 'pct' ); ?></li>
         </ul>
-
-        <h2><?php esc_html_e( 'Shading page URL', 'pct' ); ?></h2>
-        <p>
-            <?php esc_html_e( 'The setting below tells the plugin where your Shade helper page lives. This should be the URL of the page where you are using the [shade-helper] shortcode.', 'pct' ); ?>
-        </p>
-        <p>
-            <?php esc_html_e( 'When this URL is set, the colour swatches in your [paint_table] output become links. Clicking a swatch will take the visitor to your Shade helper page and automatically pass the clicked colour so that the ladder is built around that paint.', 'pct' ); ?>
-        </p>
-        <p>
-            <?php esc_html_e( 'If you leave this field empty, the swatches remain as simple colour indicators and are not clickable.', 'pct' ); ?>
-        </p>
-
-        <form method="post">
-            <?php wp_nonce_field( 'pct_info_settings', 'pct_info_settings_nonce' ); ?>
-
-            <table class="form-table" role="presentation">
-                <tr>
-                    <th scope="row">
-                        <label for="pct_mixing_page_url"><?php esc_html_e( 'Shading page URL', 'pct' ); ?></label>
-                    </th>
-                    <td>
-                        <input type="url"
-                            name="pct_mixing_page_url"
-                            id="pct_mixing_page_url"
-                            class="regular-text"
-                            value="<?php echo esc_attr( $info_url ); ?>"
-                            placeholder="https://example.com/mixing-helper">
-                        <p class="description">
-                            <?php esc_html_e( 'Enter the URL of the page where you are using the [shade-helper] shortcode. This is used when clicking a paint from the [paint_table] shortcode.', 'pct' ); ?>
-                        </p>
-                    </td>
-                </tr>
-            </table>
-
-            <?php submit_button( __( 'Save settings', 'pct' ), 'primary', 'pct_info_settings_submit' ); ?>
-        </form>
     </div>
 
 <?php
-elseif ( 'export_page' === $pct_admin_view ) : ?>
 
-    <div class="wrap">
-        <h1><?php esc_html_e( 'Export Paints to CSV', 'pct' ); ?></h1>
-
-        <?php
-        $errors = isset( $pct_export_errors ) && is_array( $pct_export_errors ) ? $pct_export_errors : [];
-
-        if ( ! empty( $errors ) ) : ?>
-            <div class="notice notice-error">
-                <p><?php echo implode( '<br>', array_map( 'esc_html', $errors ) ); ?></p>
-            </div>
-        <?php endif; ?>
-
-        <p>
-            <?php esc_html_e( 'Generate a CSV file with one paint per row.', 'pct' ); ?>
-        </p>
-        <p>
-            <?php esc_html_e( 'Columns: name, number, hex colour, on shelf (yes/no).', 'pct' ); ?>
-        </p>
-
-        <form method="post">
-            <?php wp_nonce_field( 'pct_export_paints', 'pct_export_nonce' ); ?>
-
-            <table class="form-table" role="presentation">
-                <tr>
-                    <th scope="row">
-                        <label for="pct_range"><?php esc_html_e( 'Paint range', 'pct' ); ?></label>
-                    </th>
-                    <td>
-                        <?php
-                        wp_dropdown_categories(
-                            [
-                                'taxonomy'         => PCT_Paint_Table_Plugin::TAX,
-                                'name'             => 'pct_range',
-                                'id'               => 'pct_range',
-                                'hide_empty'       => false,
-                                'show_option_none' => __( 'Select a range', 'pct' ),
-                            ]
-                        );
-                        ?>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">
-                        <label for="pct_shelf"><?php esc_html_e( 'On shelf filter', 'pct' ); ?></label>
-                    </th>
-                    <td>
-                        <select name="pct_shelf" id="pct_shelf">
-                            <option value="any"><?php esc_html_e( 'All paints in range', 'pct' ); ?></option>
-                            <option value="yes"><?php esc_html_e( 'Only paints marked as on shelf', 'pct' ); ?></option>
-                        </select>
-                    </td>
-                </tr>
-            </table>
-
-            <?php submit_button( __( 'Download CSV', 'pct' ), 'primary', 'pct_export_submit' ); ?>
-        </form>
-    </div>
-
-<?php
 endif;

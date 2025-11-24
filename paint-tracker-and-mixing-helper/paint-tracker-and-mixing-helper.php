@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes and tools for tracking paints, displaying paint colour tables, and importing/exporting from CSV.
- * Version: 0.6.1
+ * Version: 0.6.2
  * Author: C4813
  * Text Domain: pct
  */
@@ -26,7 +26,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_LINK     = '_pct_link'; // legacy single link
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.6.1';
+        const VERSION = '0.6.2';
 
         public function __construct() {
             add_action( 'init',                    [ $this, 'register_types' ] );
@@ -211,10 +211,16 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $on_shelf = isset( $_POST['pct_on_shelf'] ) ? 1 : 0;
             update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
 
-            // Save multiple links
+            // -------- Save multiple links --------
             $links = [];
+
+            // Preferred structured format: pct_links[0][title], pct_links[0][url], ...
             if ( isset( $_POST['pct_links'] ) && is_array( $_POST['pct_links'] ) ) {
                 foreach ( $_POST['pct_links'] as $link ) {
+                    if ( ! is_array( $link ) ) {
+                        continue;
+                    }
+
                     $title = isset( $link['title'] ) ? sanitize_text_field( wp_unslash( $link['title'] ) ) : '';
                     $url   = isset( $link['url'] ) ? esc_url_raw( wp_unslash( $link['url'] ) ) : '';
 
@@ -226,6 +232,36 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     }
                 }
             }
+            // Backwards/alternate format: pct_links_title[] + pct_links_url[]
+            elseif (
+                ( isset( $_POST['pct_links_title'] ) && is_array( $_POST['pct_links_title'] ) ) ||
+                ( isset( $_POST['pct_links_url'] ) && is_array( $_POST['pct_links_url'] ) )
+            ) {
+                $titles = isset( $_POST['pct_links_title'] ) ? (array) $_POST['pct_links_title'] : [];
+                $urls   = isset( $_POST['pct_links_url'] )   ? (array) $_POST['pct_links_url']   : [];
+
+                // Normalise indexes
+                $titles = array_values( $titles );
+                $urls   = array_values( $urls );
+
+                $max = max( count( $titles ), count( $urls ) );
+
+                for ( $i = 0; $i < $max; $i++ ) {
+                    $title_raw = isset( $titles[ $i ] ) ? $titles[ $i ] : '';
+                    $url_raw   = isset( $urls[ $i ] )   ? $urls[ $i ]   : '';
+
+                    $title = sanitize_text_field( wp_unslash( $title_raw ) );
+                    $url   = esc_url_raw( wp_unslash( $url_raw ) );
+
+                    if ( $url ) {
+                        $links[] = [
+                            'title' => $title,
+                            'url'   => $url,
+                        ];
+                    }
+                }
+            }
+
             update_post_meta( $post_id, self::META_LINKS, $links );
 
             // If we now have structured links, remove the legacy single link

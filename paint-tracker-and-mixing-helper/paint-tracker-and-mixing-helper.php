@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes and tools for tracking paints, displaying paint colour tables, and importing/exporting from CSV.
- * Version: 0.4.0
+ * Version: 0.4.3
  * Author: C4813
  * Text Domain: pct
  */
@@ -26,7 +26,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_LINK     = '_pct_link'; // legacy single link
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.4.0';
+        const VERSION = '0.4.3';
 
         public function __construct() {
             add_action( 'init',                    [ $this, 'register_types' ] );
@@ -582,6 +582,56 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         }
 
         /**
+         * Helper: render paint options for mixing dropdowns.
+         *
+         * @param array $paints Array of paints.
+         */
+        public static function render_mix_paint_options( $paints ) {
+            foreach ( $paints as $paint ) {
+                $name     = isset( $paint['name'] ) ? $paint['name'] : '';
+                $number   = isset( $paint['number'] ) ? $paint['number'] : '';
+                $hex      = isset( $paint['hex'] ) ? $paint['hex'] : '';
+                $range_id = isset( $paint['range_id'] ) ? (int) $paint['range_id'] : 0;
+
+                if ( '' === $name || '' === $hex || ! $range_id ) {
+                    continue;
+                }
+
+                $label = $name;
+                if ( '' !== $number ) {
+                    $label .= ' (' . $number . ')';
+                }
+
+                // Choose text colour for contrast (simple luminance check)
+                $text_color = '#000000';
+                $hex_clean  = ltrim( $hex, '#' );
+                if ( strlen( $hex_clean ) === 6 ) {
+                    $r = hexdec( substr( $hex_clean, 0, 2 ) );
+                    $g = hexdec( substr( $hex_clean, 2, 2 ) );
+                    $b = hexdec( substr( $hex_clean, 4, 2 ) );
+                    $luminance = ( 0.299 * $r + 0.587 * $g + 0.114 * $b ) / 255;
+                    $text_color = ( $luminance < 0.5 ) ? '#f9fafb' : '#111827';
+                }
+
+                $style = sprintf(
+                    'background-color:%1$s;color:%2$s;',
+                    esc_attr( $hex ),
+                    esc_attr( $text_color )
+                );
+                ?>
+                <div class="pct-mix-option"
+                     data-hex="<?php echo esc_attr( $hex ); ?>"
+                     data-label="<?php echo esc_attr( $label ); ?>"
+                     data-range="<?php echo esc_attr( $range_id ); ?>"
+                     style="<?php echo $style; ?>">
+                    <span class="pct-mix-option-swatch"></span>
+                    <span class="pct-mix-option-label"><?php echo esc_html( $label ); ?></span>
+                </div>
+                <?php
+            }
+        }
+
+        /**
          * Shortcode: [mixing_helper]
          *
          * Shows a two-paint mixing UI with ranges + paints.
@@ -596,14 +646,14 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     'order'      => 'ASC',
                 ]
             );
-    
+
             if ( is_wp_error( $ranges ) || empty( $ranges ) ) {
                 return '<p>' . esc_html__( 'No paint ranges found.', 'pct' ) . '</p>';
             }
-    
+
             // Query all paints in these ranges, ordered by number
             $range_ids = wp_list_pluck( $ranges, 'term_id' );
-    
+
             $q = new WP_Query(
                 [
                     'post_type'      => self::CPT,
@@ -621,21 +671,21 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     ],
                 ]
             );
-    
+
             if ( ! $q->have_posts() ) {
                 return '<p>' . esc_html__( 'No paints found for mixing.', 'pct' ) . '</p>';
             }
-    
+
             $paints = [];
-    
+
             while ( $q->have_posts() ) {
                 $q->the_post();
                 $post_id = get_the_ID();
-    
+
                 $name   = get_the_title();
                 $number = get_post_meta( $post_id, self::META_NUMBER, true );
                 $hex    = get_post_meta( $post_id, self::META_HEX, true );
-    
+
                 // Take the first range term for this paint (if multiple, first is fine)
                 $term_ids = wp_get_object_terms(
                     $post_id,
@@ -644,9 +694,9 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                         'fields' => 'ids',
                     ]
                 );
-    
+
                 $range_id = ! empty( $term_ids ) ? (int) $term_ids[0] : 0;
-    
+
                 $paints[] = [
                     'id'       => $post_id,
                     'name'     => $name,
@@ -655,17 +705,17 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     'range_id' => $range_id,
                 ];
             }
-    
+
             wp_reset_postdata();
-    
+
             if ( empty( $paints ) ) {
                 return '<p>' . esc_html__( 'No paints found for mixing.', 'pct' ) . '</p>';
             }
-    
+
             // Expose to template
             $pct_ranges = $ranges;
             $pct_paints = $paints;
-    
+
             ob_start();
             include plugin_dir_path( __FILE__ ) . 'mixing-helper-template.php';
             return ob_get_clean();

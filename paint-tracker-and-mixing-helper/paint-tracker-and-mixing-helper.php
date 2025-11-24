@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes and tools for tracking paints, displaying paint colour tables, and importing/exporting from CSV.
- * Version: 0.4.3
+ * Version: 0.4.4
  * Author: C4813
  * Text Domain: pct
  */
@@ -26,7 +26,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_LINK     = '_pct_link'; // legacy single link
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.4.3';
+        const VERSION = '0.4.4';
 
         public function __construct() {
             add_action( 'init',                    [ $this, 'register_types' ] );
@@ -43,6 +43,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             // Admin: CSV import & export pages
             add_action( 'admin_menu',              [ $this, 'register_import_page' ] );
             add_action( 'admin_menu',              [ $this, 'register_export_page' ] );
+            add_action( 'admin_menu',              [ $this, 'register_info_settings_page' ] );
 
             // Admin: list table columns & sorting
             add_filter( 'manage_edit-' . self::CPT . '_columns',          [ $this, 'admin_columns' ] );
@@ -573,9 +574,10 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             wp_reset_postdata();
 
             // Make data available to the template
-            $pct_paints      = $paints_data;
-            $pct_range_title = $range_title;
-
+            $pct_paints           = $paints_data;
+            $pct_range_title      = $range_title;
+            $pct_mixing_page_url  = get_option( 'pct_mixing_page_url', '' );
+            
             ob_start();
             include plugin_dir_path( __FILE__ ) . 'paint-display-template.php';
             return ob_get_clean();
@@ -637,6 +639,19 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
          * Shows a two-paint mixing UI with ranges + paints.
          */
         public function shortcode_mixing_helper( $atts ) {
+            // Optional: default shade hex passed via URL when coming from [paint_table]
+            $default_shade_hex = '';
+            if ( isset( $_GET['pct_shade_hex'] ) ) {
+                $raw_hex = sanitize_text_field( wp_unslash( $_GET['pct_shade_hex'] ) );
+                $raw_hex = trim( $raw_hex );
+                if ( '' !== $raw_hex ) {
+                    if ( $raw_hex[0] !== '#' ) {
+                        $raw_hex = '#' . $raw_hex;
+                    }
+                    $default_shade_hex = $raw_hex;
+                }
+            }
+        
             // Get all paint ranges
             $ranges = get_terms(
                 [
@@ -713,9 +728,10 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             }
 
             // Expose to template
-            $pct_ranges = $ranges;
-            $pct_paints = $paints;
-
+            $pct_ranges            = $ranges;
+            $pct_paints            = $paints;
+            $pct_default_shade_hex = $default_shade_hex;
+            
             ob_start();
             include plugin_dir_path( __FILE__ ) . 'mixing-helper-template.php';
             return ob_get_clean();
@@ -789,6 +805,20 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 [ $this, 'render_import_page' ]
             );
         }
+        
+        /**
+         * Register "Info & Settings" submenu.
+         */
+        public function register_info_settings_page() {
+            add_submenu_page(
+                'edit.php?post_type=' . self::CPT,
+                __( 'Info & Settings', 'pct' ),
+                __( 'Info & Settings', 'pct' ),
+                'manage_options',
+                'pct-info-settings',
+                [ $this, 'render_info_settings_page' ]
+            );
+        }
 
         /**
          * Register "Export to CSV" submenu.
@@ -802,6 +832,34 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 'pct-export-paints',
                 [ $this, 'render_export_page' ]
             );
+        }
+        
+        /**
+         * Render the Info & Settings page and handle saving the URL option.
+         * Delegates HTML to admin/template.php.
+         */
+        public function render_info_settings_page() {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_die( esc_html__( 'You do not have permission to access this page.', 'pct' ) );
+            }
+
+            $message = '';
+
+            if ( isset( $_POST['pct_info_settings_submit'] ) ) {
+                check_admin_referer( 'pct_info_settings', 'pct_info_settings_nonce' );
+
+                $url_raw = isset( $_POST['pct_mixing_page_url'] ) ? wp_unslash( $_POST['pct_mixing_page_url'] ) : '';
+                $url     = esc_url_raw( trim( $url_raw ) );
+
+                update_option( 'pct_mixing_page_url', $url );
+                $message = __( 'Settings saved.', 'pct' );
+            }
+
+            $pct_admin_view   = 'info_settings';
+            $pct_info_message = $message;
+            $pct_info_url     = get_option( 'pct_mixing_page_url', '' );
+
+            include plugin_dir_path( __FILE__ ) . 'admin/template.php';
         }
 
         /**

@@ -142,10 +142,9 @@
 }
 
 .pct-mix-header {
+    font-weight: 600;
+    margin-bottom: 10px;
     text-align: center;
-    font-weight: 700;
-    font-size: 20px;
-    margin-bottom: 12px;
 }
 
 .pct-mix-row {
@@ -241,6 +240,7 @@
     box-shadow: 0 0 0 1px rgba(255,255,255,.5) inset;
 }
 
+
 /* ============================
    Shade helper (separate tool)
    ============================ */
@@ -309,11 +309,6 @@
     border-width: 2px;
 }
 
-/* Ensure mixer result row stays hidden on load, even though it reuses pct-shade-row classes */
-.pct-mix-result-block.pct-shade-row {
-    display: none;
-}
-
 .pct-shade-meta {
     flex: 1 1 auto;
 }
@@ -334,6 +329,11 @@
     text-align: center;
     color: #6b7280;
     margin: 4px 0 0; /* avoid big top gap */
+}
+
+/* Ensure mixer result row stays hidden on load, even though it reuses pct-shade-row classes (if applied) */
+.pct-mix-result-block.pct-shade-row {
+    display: none;
 }
 
 

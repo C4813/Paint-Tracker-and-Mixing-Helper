@@ -40,9 +40,30 @@ if ( ! isset( $pct_paints ) || ! is_array( $pct_paints ) || empty( $pct_paints )
                 ?>
                 <tr>
                     <td class="pct-swatch-cell">
-                        <?php if ( $hex ) : ?>
-                            <span class="pct-swatch" style="background-color: <?php echo esc_attr( $hex ); ?>"></span>
-                        <?php endif; ?>
+                        <?php
+                        if ( $hex ) :
+                            // Build link to mixing page (if configured), passing the hex as pct_shade_hex
+                            $swatch_url = '';
+                    
+                            if ( ! empty( $pct_mixing_page_url ) ) {
+                                $swatch_url = add_query_arg(
+                                    'pct_shade_hex',
+                                    $hex,
+                                    $pct_mixing_page_url
+                                );
+                            }
+                    
+                            if ( $swatch_url ) :
+                                ?>
+                                <a href="<?php echo esc_url( $swatch_url ); ?>" class="pct-swatch-link">
+                                    <span class="pct-swatch" style="background-color: <?php echo esc_attr( $hex ); ?>"></span>
+                                </a>
+                            <?php else : ?>
+                                <span class="pct-swatch" style="background-color: <?php echo esc_attr( $hex ); ?>"></span>
+                            <?php
+                            endif;
+                        endif;
+                        ?>
                     </td>
                     <td class="pct-name-cell">
                         <span class="pct-name"><?php echo esc_html( $name ); ?></span>

@@ -80,4 +80,29 @@ jQuery(function($) {
             }
         });
     }
+    
+    /**
+     * Info & Settings: auto-save options
+     * - Paint table display (radio)
+     * - Shading page URL (on change)
+     */
+
+    // Helper: submit closest form via native submit()
+    function pctSubmitClosestForm(el) {
+        var $form = el.closest('form');
+        if ($form.length && $form[0] && typeof $form[0].submit === 'function') {
+            $form[0].submit();
+        }
+    }
+
+    // Auto-submit when the paint table display mode changes
+    $(document).on('change', 'input[name="pct_table_display_mode"]', function() {
+        pctSubmitClosestForm($(this));
+    });
+
+    // Auto-submit when the shading page URL is changed (on change/blur)
+    $(document).on('change', '#pct_mixing_page_url', function() {
+        pctSubmitClosestForm($(this));
+    });
+
 });

@@ -17,16 +17,16 @@
 /* Wrapper – centers the (auto-width) table and allows scroll if needed */
 .pct-table-wrapper {
     overflow-x: auto;
-    text-align: center; /* center inline-table below */
+    text-align: center;
 }
 
 /* Core table styling */
 .pct-table-container table.pct-table {
     border-collapse: collapse;
     font-size: 14px;
-    table-layout: auto;            /* let content decide widths */
-    width: auto !important;        /* do NOT stretch to 100% */
-    display: inline-table;         /* so text-align:center wrapper works */
+    table-layout: auto;
+    width: auto !important;
+    display: inline-table;
     margin: 0 auto;
 }
 
@@ -43,12 +43,12 @@
 
 /* Header styling adjustments when using full-row colour mode */
 .pct-table-container.pct-table-mode-rows table.pct-table thead {
-    background-color: #ffffff !important; /* remove dark background */
+    background-color: #ffffff !important;
 }
 
 .pct-table-container.pct-table-mode-rows table.pct-table thead th {
-    color: #111827 !important;     /* dark readable text */
-    font-weight: 700 !important;   /* stronger header */
+    color: #111827 !important;
+    font-weight: 700 !important;
 }
 
 /* Cells (header + body) */
@@ -68,14 +68,43 @@
     background-color: #f7f7f7 !important;
 }
 
-/* In row-highlight mode, let inline row colours show through */
+/* In row-highlight mode, let inline background colours show */
 .pct-table-container.pct-row-highlight-mode table.pct-table tbody tr td {
     background-color: transparent !important;
 }
 
-/* Clickable rows in row-highlight mode (link to shade helper) */
+/* Clickable rows (row-highlight mode only) */
 .pct-table-container.pct-row-highlight-mode table.pct-table tbody tr.pct-row-clickable {
     cursor: pointer;
+}
+
+/* ==========================================
+   GLOBAL TABLE LINK RULES – removes ALL underlines
+   ========================================== */
+
+.pct-table-container table.pct-table a {
+    color: inherit !important;
+    text-decoration: none !important;
+    border-bottom: none !important;
+}
+
+.pct-table-container table.pct-table a:hover,
+.pct-table-container table.pct-table a:focus {
+    color: inherit !important;
+    text-decoration: none !important;
+    border-bottom: none !important;
+}
+
+/* Swatch link (dot mode) */
+.pct-swatch-link {
+    text-decoration: none !important;
+    border: none !important;
+}
+
+.pct-swatch-link:hover,
+.pct-swatch-link:focus {
+    text-decoration: none !important;
+    border: none !important;
 }
 
 /* Swatch column */
@@ -105,7 +134,7 @@
 
 /* Number column: narrow */
 .pct-number {
-    width: 90px;      /* adjust to taste */
+    width: 90px;
 }
 
 /* Models column: narrow */
@@ -113,16 +142,7 @@
     width: 100px;
 }
 
-.pct-models a {
-    text-decoration: none;
-    border-bottom: 1px solid rgba(59,130,246,.4);
-}
-
-.pct-models a:hover {
-    border-bottom-color: rgba(59,130,246,.9);
-}
-
-/* Responsive: hide Models column on very small screens if needed */
+/* Responsive: hide Models column on very small screens */
 @media (max-width: 640px) {
     .pct-models-header,
     .pct-models {
@@ -156,8 +176,8 @@
     border: 1px solid #e5e7eb;
     border-radius: 6px;
     padding: 12px 14px;
-    margin: 20px auto;   /* centered horizontally */
-    max-width: 640px;    /* container width */
+    margin: 20px auto;
+    max-width: 640px;
 }
 
 .pct-mix-header {
@@ -173,16 +193,14 @@
     margin-bottom: 12px;
 }
 
-/* Center-align all items inside each paint column */
 .pct-mix-column {
     flex: 1 1 220px;
     display: flex;
     flex-direction: column;
-    align-items: center;  /* centers titles + inputs */
-    text-align: center;   /* centers text in labels */
+    align-items: center;
+    text-align: center;
 }
 
-/* Don't let the shade helper column stretch and create a big blank area */
 .pct-mix-column-shade {
     flex: 0 0 auto;
 }
@@ -191,22 +209,19 @@
     margin: 0 0 8px;
 }
 
-/* Make range + paint dropdown the same fixed width in each column */
 .pct-mix-column .pct-mix-range-dropdown,
 .pct-mix-column .pct-mix-dropdown {
-    width: 260px;           /* adjust this width to taste */
+    width: 260px;
     max-width: 100%;
     box-sizing: border-box;
 }
 
-/* Dropdown root (paint + range) */
 .pct-mix-dropdown,
 .pct-mix-range-dropdown {
     position: relative;
     font-size: 14px;
 }
 
-/* Parts input – narrower */
 .pct-mix-parts {
     width: 50px;
     max-width: 100%;
@@ -216,7 +231,6 @@
     border: 1px solid #d1d5db;
 }
 
-/* Stack columns on smaller screens */
 @media (max-width: 640px) {
     .pct-mix-row {
         flex-direction: column;
@@ -225,11 +239,11 @@
 
 
 /* ============================
-   Result display (stacked)
+   Result display
    ============================ */
 
 .pct-mix-result-block {
-    display: none; /* hidden by default; JS sets flex when there’s a result */
+    display: none;
     flex-direction: column;
     align-items: center;
     margin-top: 16px;
@@ -251,7 +265,7 @@
 }
 
 .pct-mix-result-swatch {
-    display: none; /* hidden by default */
+    display: none;
     width: 5rem;
     height: 5rem;
     border-radius: 999px;
@@ -261,21 +275,15 @@
 
 
 /* ============================
-   Shade helper (separate tool)
+   Shade helper
    ============================ */
 
-/* Separate box for the shade helper */
 .pct-shade-container {
     border: 1px solid #e5e7eb;
     border-radius: 6px;
     padding: 12px 14px;
     margin: 20px auto;
     max-width: 640px;
-}
-
-.pct-shade-helper {
-    margin-top: 0;
-    padding-top: 0;
 }
 
 .pct-shade-header {
@@ -287,29 +295,26 @@
 .pct-shade-controls {
     display: flex;
     flex-direction: column;
-    gap: 8px; /* slightly tighter than main mixer */
+    gap: 8px;
     align-items: stretch;
 }
 
-/* only tighten spacing INSIDE shade helper, not main mixer */
 .pct-shade-container .pct-mix-column {
     align-items: center;
     text-align: center;
 }
 
 .pct-shade-container .pct-mix-field {
-    margin-bottom: 4px; /* tighter than default 8px */
+    margin-bottom: 4px;
 }
 
 .pct-shade-scale {
-    margin-top: 6px;      /* small, consistent gap */
-    padding-top: 0;
     display: flex;
     flex-direction: column;
     gap: 6px;
+    margin-top: 6px;
 }
 
-/* kill any collapsing top margin on first child (empty text or first shade row) */
 .pct-shade-scale > *:first-child {
     margin-top: 0 !important;
 }
@@ -321,15 +326,11 @@
     padding: 6px 8px;
     border-radius: 6px;
     border: 1px solid #e5e7eb;
-    background: #ffffff; /* overridden inline per shade */
+    background: #ffffff;
 }
 
 .pct-shade-row-base {
     border-width: 2px;
-}
-
-.pct-shade-meta {
-    flex: 1 1 auto;
 }
 
 .pct-shade-ratio {
@@ -338,7 +339,6 @@
 }
 
 .pct-shade-hex {
-    /* inherit font-family from theme */
     font-size: 13px;
     opacity: 0.9;
 }
@@ -347,17 +347,16 @@
     font-size: 13px;
     text-align: center;
     color: #6b7280;
-    margin: 4px 0 0; /* avoid big top gap */
+    margin: 4px 0 0;
 }
 
-/* Ensure mixer result row stays hidden on load, even though it reuses pct-shade-row classes (if applied) */
 .pct-mix-result-block.pct-shade-row {
     display: none;
 }
 
 
 /* ============================
-   Custom dropdown internals
+   Dropdown internals
    ============================ */
 
 .pct-mix-trigger {
@@ -390,7 +389,7 @@
 }
 
 .pct-mix-trigger-label {
-    flex: 1 1 auto;
+    flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -401,8 +400,6 @@
     opacity: 0.7;
     flex-shrink: 0;
 }
-
-/* Options list */
 
 .pct-mix-list {
     position: absolute;
@@ -429,9 +426,6 @@
     display: block;
 }
 
-/* Individual paint option rows */
-/* Background + text colour are set inline from PHP using the paint's hex. */
-
 .pct-mix-option {
     display: flex;
     align-items: center;
@@ -447,7 +441,6 @@
     border: 1px solid rgba(0,0,0,.25);
     box-shadow: 0 0 0 1px rgba(255,255,255,.4) inset;
     background: transparent;
-    flex-shrink: 0;
 }
 
 .pct-mix-option-label {
@@ -457,13 +450,11 @@
     text-overflow: ellipsis;
 }
 
-/* Range options (text-only) */
 .pct-mix-range-option {
     padding: 5px 8px;
     cursor: pointer;
 }
 
-/* Slight outline for selected row, without changing its colour */
 .pct-mix-option.is-selected,
 .pct-mix-range-option.is-selected {
     box-shadow: inset 0 0 0 2px rgba(255,255,255,.6);

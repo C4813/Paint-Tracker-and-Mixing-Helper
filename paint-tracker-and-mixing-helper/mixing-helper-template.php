@@ -11,61 +11,15 @@
 if ( ! isset( $pct_ranges, $pct_paints ) || empty( $pct_ranges ) || empty( $pct_paints ) ) {
     return;
 }
-
-/**
- * Helper to print all paint options for a column.
- *
- * @param array  $paints
- * @param string $side   'left', 'right' or 'shade' (for CSS classes/ids)
- */
-function pct_render_mix_paint_options( $paints, $side ) {
-    foreach ( $paints as $paint ) {
-        $name     = isset( $paint['name'] ) ? $paint['name'] : '';
-        $number   = isset( $paint['number'] ) ? $paint['number'] : '';
-        $hex      = isset( $paint['hex'] ) ? $paint['hex'] : '';
-        $range_id = isset( $paint['range_id'] ) ? (int) $paint['range_id'] : 0;
-
-        if ( '' === $name || '' === $hex || ! $range_id ) {
-            continue;
-        }
-
-        $label = $name;
-        if ( '' !== $number ) {
-            $label .= ' (' . $number . ')';
-        }
-
-        // Choose text colour for contrast (simple luminance check)
-        $text_color = '#000000';
-        $hex_clean  = ltrim( $hex, '#' );
-        if ( strlen( $hex_clean ) === 6 ) {
-            $r = hexdec( substr( $hex_clean, 0, 2 ) );
-            $g = hexdec( substr( $hex_clean, 2, 2 ) );
-            $b = hexdec( substr( $hex_clean, 4, 2 ) );
-            $luminance = ( 0.299 * $r + 0.587 * $g + 0.114 * $b ) / 255;
-            $text_color = ( $luminance < 0.5 ) ? '#f9fafb' : '#111827';
-        }
-
-        $style = sprintf(
-            'background-color:%1$s;color:%2$s;',
-            esc_attr( $hex ),
-            esc_attr( $text_color )
-        );
-        ?>
-        <div class="pct-mix-option"
-             data-hex="<?php echo esc_attr( $hex ); ?>"
-             data-label="<?php echo esc_attr( $label ); ?>"
-             data-range="<?php echo esc_attr( $range_id ); ?>"
-             style="<?php echo $style; ?>">
-            <span class="pct-mix-option-swatch"></span>
-            <span class="pct-mix-option-label"><?php echo esc_html( $label ); ?></span>
-        </div>
-        <?php
-    }
-}
 ?>
 
 <!-- ========== MAIN TWO-PAINT MIXER ========== -->
 <div class="pct-mix-container">
+
+    <div class="pct-mix-header">
+        <?php esc_html_e( 'Mixing helper', 'pct' ); ?>
+    </div>
+
     <div class="pct-mix-row">
         <!-- Left column -->
         <div class="pct-mix-column pct-mix-column-left">
@@ -118,7 +72,7 @@ function pct_render_mix_paint_options( $paints, $side ) {
                         </button>
                         <input type="hidden" class="pct-mix-value" value="">
                         <div class="pct-mix-list" hidden>
-                            <?php pct_render_mix_paint_options( $pct_paints, 'left' ); ?>
+                            <?php PCT_Paint_Table_Plugin::render_mix_paint_options( $pct_paints ); ?>
                         </div>
                     </div>
                 </label>
@@ -187,7 +141,7 @@ function pct_render_mix_paint_options( $paints, $side ) {
                         </button>
                         <input type="hidden" class="pct-mix-value" value="">
                         <div class="pct-mix-list" hidden>
-                            <?php pct_render_mix_paint_options( $pct_paints, 'right' ); ?>
+                            <?php PCT_Paint_Table_Plugin::render_mix_paint_options( $pct_paints ); ?>
                         </div>
                     </div>
                 </label>
@@ -206,7 +160,7 @@ function pct_render_mix_paint_options( $paints, $side ) {
         </div>
     </div>
 
-    <div class="pct-mix-result-block pct-shade-row pct-shade-row-base" style="display:none;">
+    <div class="pct-mix-result-block pct-shade-row pct-shade-row-base">
         <div class="pct-shade-meta">
             <div class="pct-shade-ratio pct-mix-result-label">
                 <?php esc_html_e( 'Result', 'pct' ); ?>
@@ -215,8 +169,8 @@ function pct_render_mix_paint_options( $paints, $side ) {
                 #FFFFFF
             </div>
         </div>
-    
-        <div class="pct-mix-result-swatch" style="display:none;"></div>
+
+        <div class="pct-mix-result-swatch"></div>
     </div>
 
 </div><!-- /.pct-mix-container -->
@@ -275,7 +229,7 @@ function pct_render_mix_paint_options( $paints, $side ) {
                             </button>
                             <input type="hidden" class="pct-mix-value" value="">
                             <div class="pct-mix-list" hidden>
-                                <?php pct_render_mix_paint_options( $pct_paints, 'shade' ); ?>
+                                <?php PCT_Paint_Table_Plugin::render_mix_paint_options( $pct_paints ); ?>
                             </div>
                         </div>
                     </label>

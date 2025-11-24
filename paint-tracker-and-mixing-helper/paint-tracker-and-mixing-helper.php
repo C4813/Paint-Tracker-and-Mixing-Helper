@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes and tools for tracking paints, displaying paint colour tables, and importing/exporting from CSV.
- * Version: 0.5.0
+ * Version: 0.6.0
  * Author: C4813
  * Text Domain: pct
  */
@@ -26,17 +26,28 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_LINK     = '_pct_link'; // legacy single link
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.5.0';
+        const VERSION = '0.6.0';
 
         public function __construct() {
             add_action( 'init',                    [ $this, 'register_types' ] );
             add_action( 'init',                    [ $this, 'load_textdomain' ] );
+
+            // Metaboxes & saving
             add_action( 'add_meta_boxes',          [ $this, 'add_meta_boxes' ] );
             add_action( 'save_post_' . self::CPT,  [ $this, 'save_paint_meta' ], 10, 2 );
+
+            // Quick Edit
+            add_action( 'quick_edit_custom_box',   [ $this, 'quick_edit_fields' ], 10, 2 );
+            add_action( 'save_post_' . self::CPT,  [ $this, 'save_quick_edit' ], 10, 2 );
+            add_action( 'admin_footer-edit.php',   [ $this, 'print_quick_edit_js' ] );
+
+            // Frontend assets
+            add_action( 'wp_enqueue_scripts',      [ $this, 'enqueue_frontend_assets' ] );
+
+            // Shortcodes
             add_shortcode( 'paint_table',          [ $this, 'shortcode_paint_table' ] );
             add_shortcode( 'mixing-helper',        [ $this, 'shortcode_mixing_helper' ] );
             add_shortcode( 'shade-helper',         [ $this, 'shortcode_shade_helper' ] );
-            add_action( 'wp_enqueue_scripts',      [ $this, 'enqueue_frontend_assets' ] );
 
             // Admin assets (CSS + JS)
             add_action( 'admin_enqueue_scripts',   [ $this, 'enqueue_admin_assets' ] );
@@ -47,21 +58,14 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             add_action( 'admin_menu',              [ $this, 'register_info_settings_page' ] );
 
             // Admin: list table columns & sorting
-            add_filter( 'manage_edit-' . self::CPT . '_columns',          [ $this, 'admin_columns' ] );
-            add_action( 'manage_' . self::CPT . '_posts_custom_column',   [ $this, 'admin_columns_content' ], 10, 2 );
-            add_filter( 'manage_edit-' . self::CPT . '_sortable_columns', [ $this, 'admin_sortable_columns' ] );
-            add_action( 'pre_get_posts',                                   [ $this, 'admin_default_sort_by_number' ] );
-
-            // Admin: Quick Edit support for "On shelf"
-            add_action( 'quick_edit_custom_box',  [ $this, 'quick_edit_custom_box' ], 10, 2 );
-
-            // Admin: Bulk Edit support for "On shelf"
-            add_action( 'bulk_edit_custom_box',   [ $this, 'bulk_edit_custom_box' ], 10, 2 );
-            add_action( 'load-edit.php',          [ $this, 'handle_bulk_edit' ] );
+            add_filter( 'manage_edit-' . self::CPT . '_columns',           [ $this, 'manage_edit_columns' ] );
+            add_action( 'manage_' . self::CPT . '_posts_custom_column',    [ $this, 'manage_custom_column' ], 10, 2 );
+            add_filter( 'manage_edit-' . self::CPT . '_sortable_columns',  [ $this, 'sortable_columns' ] );
+            add_action( 'pre_get_posts',                                   [ $this, 'handle_admin_sorting' ] );
         }
 
         /**
-         * Load plugin textdomain (for translations, if ever needed).
+         * Load plugin textdomain.
          */
         public function load_textdomain() {
             load_plugin_textdomain(
@@ -72,7 +76,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         }
 
         /**
-         * Register custom post type and taxonomy.
+         * Register custom post type & taxonomy.
          */
         public function register_types() {
 
@@ -105,13 +109,247 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     ],
                     'public'       => false,
                     'show_ui'      => true,
-                    'hierarchical' => false,
+                    'show_in_menu' => true,
+                    'hierarchical' => true,
                 ]
             );
         }
 
         /**
-         * Enqueue admin-only CSS & JS for our CPT screens.
+         * Add meta boxes to the paint color edit screen.
+         */
+        public function add_meta_boxes() {
+            add_meta_box(
+                'pct_paint_details',
+                __( 'Paint Details', 'pct' ),
+                [ $this, 'render_paint_meta_box' ],
+                self::CPT,
+                'normal',
+                'default'
+            );
+        }
+
+        /**
+         * Render the meta box HTML (delegated to admin/admin-page.php).
+         */
+        public function render_paint_meta_box( $post ) {
+            $number   = get_post_meta( $post->ID, self::META_NUMBER, true );
+            $hex      = get_post_meta( $post->ID, self::META_HEX, true );
+            $on_shelf = get_post_meta( $post->ID, self::META_ON_SHELF, true );
+            $links    = get_post_meta( $post->ID, self::META_LINKS, true );
+
+            if ( ! is_array( $links ) ) {
+                $links = [];
+            }
+
+            // Legacy single link: add as first item if structured links are empty
+            if ( empty( $links ) ) {
+                $legacy_link = get_post_meta( $post->ID, self::META_LINK, true );
+                if ( $legacy_link ) {
+                    $links[] = [
+                        'title' => '',
+                        'url'   => $legacy_link,
+                    ];
+                }
+            }
+
+            wp_nonce_field( 'pct_save_paint_meta', 'pct_paint_meta_nonce' );
+
+            $pct_admin_view = 'meta_box';
+            $pct_number     = $number;
+            $pct_hex        = $hex;
+            $pct_on_shelf   = $on_shelf;
+            $pct_links      = $links;
+
+            include plugin_dir_path( __FILE__ ) . 'admin/admin-page.php';
+        }
+
+        /**
+         * Save meta box fields (including on-shelf flag & multiple links).
+         * Handles both full edit screen and Quick Edit saves.
+         */
+        public function save_paint_meta( $post_id, $post ) {
+
+            // Allow either the main meta box nonce OR quick edit nonce
+            $has_nonce = isset( $_POST['pct_paint_meta_nonce'] ) || isset( $_POST['pct_quick_edit_nonce'] );
+            if ( ! $has_nonce ) {
+                return;
+            }
+
+            // For simplicity, verify whichever nonce is present
+            if ( isset( $_POST['pct_paint_meta_nonce'] ) && ! wp_verify_nonce( $_POST['pct_paint_meta_nonce'], 'pct_save_paint_meta' ) ) {
+                return;
+            }
+
+            if ( isset( $_POST['pct_quick_edit_nonce'] ) && ! wp_verify_nonce( $_POST['pct_quick_edit_nonce'], 'pct_quick_edit' ) ) {
+                return;
+            }
+
+            // Check autosave
+            if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+                return;
+            }
+
+            // Check permissions
+            if ( self::CPT !== $post->post_type ) {
+                return;
+            }
+
+            if ( ! current_user_can( 'edit_post', $post_id ) ) {
+                return;
+            }
+
+            // Save number
+            $number = isset( $_POST['pct_number'] ) ? sanitize_text_field( wp_unslash( $_POST['pct_number'] ) ) : '';
+            update_post_meta( $post_id, self::META_NUMBER, $number );
+
+            // Save hex
+            $hex = isset( $_POST['pct_hex'] ) ? sanitize_text_field( wp_unslash( $_POST['pct_hex'] ) ) : '';
+            update_post_meta( $post_id, self::META_HEX, $hex );
+
+            // Save on-shelf flag
+            $on_shelf = isset( $_POST['pct_on_shelf'] ) ? 1 : 0;
+            update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
+
+            // Save multiple links
+            $links = [];
+            if ( isset( $_POST['pct_links'] ) && is_array( $_POST['pct_links'] ) ) {
+                foreach ( $_POST['pct_links'] as $link ) {
+                    $title = isset( $link['title'] ) ? sanitize_text_field( wp_unslash( $link['title'] ) ) : '';
+                    $url   = isset( $link['url'] ) ? esc_url_raw( wp_unslash( $link['url'] ) ) : '';
+
+                    if ( $url ) {
+                        $links[] = [
+                            'title' => $title,
+                            'url'   => $url,
+                        ];
+                    }
+                }
+            }
+            update_post_meta( $post_id, self::META_LINKS, $links );
+
+            // If we now have structured links, remove the legacy single link
+            if ( ! empty( $links ) ) {
+                delete_post_meta( $post_id, self::META_LINK );
+            }
+        }
+
+        /**
+         * Output Quick Edit fields.
+         */
+        public function quick_edit_fields( $column_name, $post_type ) {
+            if ( self::CPT !== $post_type || 'pct_number' !== $column_name ) {
+                return;
+            }
+            ?>
+            <fieldset class="inline-edit-col-left">
+                <div class="inline-edit-col">
+                    <label>
+                        <span class="title"><?php esc_html_e( 'Number', 'pct' ); ?></span>
+                        <span class="input-text-wrap">
+                            <input type="text" name="pct_number" class="ptitle" value="">
+                        </span>
+                    </label>
+                    <label>
+                        <span class="title"><?php esc_html_e( 'Hex', 'pct' ); ?></span>
+                        <span class="input-text-wrap">
+                            <input type="text" name="pct_hex" class="ptitle" value="">
+                        </span>
+                    </label>
+                    <label>
+                        <span class="title"><?php esc_html_e( 'On Shelf?', 'pct' ); ?></span>
+                        <span class="input-text-wrap">
+                            <input type="checkbox" name="pct_on_shelf" value="1">
+                        </span>
+                    </label>
+                </div>
+            </fieldset>
+            <?php
+            wp_nonce_field( 'pct_quick_edit', 'pct_quick_edit_nonce' );
+        }
+
+        /**
+         * Save Quick Edit values.
+         */
+        public function save_quick_edit( $post_id, $post ) {
+            if ( ! isset( $_POST['pct_quick_edit_nonce'] ) || ! wp_verify_nonce( $_POST['pct_quick_edit_nonce'], 'pct_quick_edit' ) ) {
+                return;
+            }
+
+            if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+                return;
+            }
+
+            if ( self::CPT !== $post->post_type ) {
+                return;
+            }
+
+            if ( ! current_user_can( 'edit_post', $post_id ) ) {
+                return;
+            }
+
+            // Save number
+            if ( isset( $_POST['pct_number'] ) ) {
+                $number = sanitize_text_field( wp_unslash( $_POST['pct_number'] ) );
+                update_post_meta( $post_id, self::META_NUMBER, $number );
+            }
+
+            // Save hex
+            if ( isset( $_POST['pct_hex'] ) ) {
+                $hex = sanitize_text_field( wp_unslash( $_POST['pct_hex'] ) );
+                update_post_meta( $post_id, self::META_HEX, $hex );
+            }
+
+            // Save on shelf
+            $on_shelf = isset( $_POST['pct_on_shelf'] ) ? 1 : 0;
+            update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
+        }
+
+        /**
+         * Print Quick Edit JS to populate fields from the row.
+         */
+        public function print_quick_edit_js() {
+            $screen = get_current_screen();
+            if ( empty( $screen ) || self::CPT !== $screen->post_type ) {
+                return;
+            }
+            ?>
+            <script type="text/javascript">
+            jQuery(function($) {
+                var $wp_inline_edit = inlineEditPost.edit;
+
+                inlineEditPost.edit = function( id ) {
+                    $wp_inline_edit.apply( this, arguments );
+
+                    var postId = 0;
+                    if ( typeof(id) === 'object' ) {
+                        postId = parseInt( this.getId(id), 10 );
+                    }
+
+                    if ( postId > 0 ) {
+                        var $editRow   = $('#edit-' + postId);
+                        var $postRow   = $('#post-' + postId);
+                        var number     = $('.column-pct_number', $postRow).text().trim();
+                        var hex        = $('.column-pct_hex', $postRow).text().trim();
+                        var onShelfVal = $('.pct-on-shelf-value', $postRow).data('on-shelf');
+
+                        $('input[name="pct_number"]', $editRow).val(number);
+                        $('input[name="pct_hex"]', $editRow).val(hex);
+
+                        if ( onShelfVal === 1 || onShelfVal === '1' ) {
+                            $('input[name="pct_on_shelf"]', $editRow).prop('checked', true);
+                        } else {
+                            $('input[name="pct_on_shelf"]', $editRow).prop('checked', false);
+                        }
+                    }
+                };
+            });
+            </script>
+            <?php
+        }
+
+        /**
+         * Enqueue admin scripts.
          */
         public function enqueue_admin_assets( $hook ) {
             global $typenow;
@@ -123,341 +361,29 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             // Use main stylesheet (contains both frontend + admin rules)
             wp_enqueue_style(
                 'pct_paint_table_admin',
-                plugin_dir_url( __FILE__ ) . 'style.css',
+                plugin_dir_url( __FILE__ ) . 'public/css/style.css',
                 [],
                 self::VERSION
             );
 
             wp_enqueue_script(
                 'pct_paint_table_admin',
-                plugin_dir_url( __FILE__ ) . 'admin/script.js',
+                plugin_dir_url( __FILE__ ) . 'admin/admin.js',
                 [ 'jquery' ],
                 self::VERSION,
                 true
             );
 
-            // Localise strings for admin/script.js (for labels/placeholders)
+            // Localise strings for admin/admin.js (for labels/placeholders)
             wp_localize_script(
                 'pct_paint_table_admin',
                 'pctAdmin',
                 [
-                    'linkTitleLabel' => __( 'Link title', 'pct' ),
-                    'linkTitlePh'    => __( 'e.g. Tutorial, Review, Example Build', 'pct' ),
-                    'linkUrlLabel'   => __( 'Link URL', 'pct' ),
-                    'linkUrlPh'      => 'https://example.com/my-article',
-                    'removeLink'     => __( 'Remove link', 'pct' ),
+                    'add_link_label'   => __( 'Add another link', 'pct' ),
+                    'link_title_label' => __( 'Link Title', 'pct' ),
+                    'link_url_label'   => __( 'Link URL', 'pct' ),
                 ]
             );
-        }
-
-        /**
-         * Add custom columns to Paint Colours admin list.
-         */
-        public function admin_columns( $columns ) {
-            $new = [];
-
-            foreach ( $columns as $key => $label ) {
-
-                // Remove default Date column
-                if ( 'date' === $key ) {
-                    continue;
-                }
-
-                $new[ $key ] = $label;
-
-                // Insert Number and On shelf right after Title
-                if ( 'title' === $key ) {
-                    $new['pct_number']   = __( 'Number', 'pct' );
-                    $new['pct_on_shelf'] = __( 'On shelf', 'pct' );
-                }
-            }
-
-            return $new;
-        }
-
-        /**
-         * Render content for custom columns.
-         */
-        public function admin_columns_content( $column, $post_id ) {
-            if ( 'pct_number' === $column ) {
-                $number = get_post_meta( $post_id, self::META_NUMBER, true );
-                echo esc_html( $number );
-            }
-
-            if ( 'pct_on_shelf' === $column ) {
-                $on_shelf = get_post_meta( $post_id, self::META_ON_SHELF, true );
-                $on_shelf = ( $on_shelf === '1' ) ? '1' : '0';
-
-                echo ( $on_shelf === '1' )
-                    ? esc_html__( 'Yes', 'pct' )
-                    : '&mdash;';
-
-                // Hidden marker so Quick Edit JS can read the value
-                echo '<span class="hidden pct-on-shelf-value" data-on-shelf="' . esc_attr( $on_shelf ) . '"></span>';
-            }
-        }
-
-        /**
-         * Make columns sortable.
-         */
-        public function admin_sortable_columns( $columns ) {
-            $columns['pct_number'] = 'pct_number';
-            return $columns;
-        }
-
-        /**
-         * Default sort by paint number in admin, and support clicking the Number column.
-         */
-        public function admin_default_sort_by_number( $query ) {
-            if ( ! is_admin() || ! $query->is_main_query() ) {
-                return;
-            }
-
-            $post_type = $query->get( 'post_type' );
-            if ( self::CPT !== $post_type ) {
-                return;
-            }
-
-            $orderby = $query->get( 'orderby' );
-
-            if ( 'pct_number' === $orderby ) {
-                $query->set( 'meta_key', self::META_NUMBER );
-                $query->set( 'orderby', 'meta_value' );
-                return;
-            }
-
-            if ( empty( $orderby ) ) {
-                $query->set( 'meta_key', self::META_NUMBER );
-                $query->set( 'orderby', 'meta_value' );
-                $query->set( 'order', 'ASC' );
-            }
-        }
-
-        /**
-         * Quick Edit field for "On the shelf".
-         */
-        public function quick_edit_custom_box( $column_name, $post_type ) {
-            if ( self::CPT !== $post_type || 'pct_on_shelf' !== $column_name ) {
-                return;
-            }
-            ?>
-            <fieldset class="inline-edit-col-right inline-edit-pct-on-shelf">
-                <div class="inline-edit-col">
-                    <label class="alignleft">
-                        <span class="title"><?php esc_html_e( 'On the shelf', 'pct' ); ?></span>
-                        <span class="input-text-wrap">
-                            <input type="checkbox" name="pct_on_shelf" value="1">
-                            <?php esc_html_e( 'Yes', 'pct' ); ?>
-                        </span>
-                    </label>
-                </div>
-            </fieldset>
-            <?php
-        }
-
-        /**
-         * Bulk Edit field for "On the shelf".
-         */
-        public function bulk_edit_custom_box( $column_name, $post_type ) {
-            if ( self::CPT !== $post_type || 'pct_on_shelf' !== $column_name ) {
-                return;
-            }
-            ?>
-            <fieldset class="inline-edit-col-right inline-edit-pct-on-shelf-bulk">
-                <div class="inline-edit-col">
-                    <label class="alignleft">
-                        <span class="title"><?php esc_html_e( 'On the shelf', 'pct' ); ?></span>
-                        <span class="input-text-wrap">
-                            <select name="pct_on_shelf_bulk">
-                                <option value=""><?php esc_html_e( '— No change —', 'pct' ); ?></option>
-                                <option value="1"><?php esc_html_e( 'Mark as on shelf', 'pct' ); ?></option>
-                                <option value="0"><?php esc_html_e( 'Mark as not on shelf', 'pct' ); ?></option>
-                            </select>
-                        </span>
-                    </label>
-                </div>
-            </fieldset>
-            <?php
-        }
-
-        /**
-         * Handle Bulk Edit submission for On the shelf.
-         */
-        public function handle_bulk_edit() {
-            if ( ! isset( $_REQUEST['post_type'] ) || $_REQUEST['post_type'] !== self::CPT ) {
-                return;
-            }
-
-            if ( ! current_user_can( 'edit_posts' ) ) {
-                return;
-            }
-
-            // Bulk edit form nonce
-            if ( ! isset( $_REQUEST['_wpnonce'] ) || ! wp_verify_nonce( $_REQUEST['_wpnonce'], 'bulk-posts' ) ) {
-                return;
-            }
-
-            if ( ! isset( $_REQUEST['pct_on_shelf_bulk'] ) ) {
-                return;
-            }
-
-            $value = sanitize_text_field( wp_unslash( $_REQUEST['pct_on_shelf_bulk'] ) );
-
-            // Empty / no choice => no change
-            if ( '' === $value ) {
-                return;
-            }
-
-            // Normalise to '1' or '0'
-            $on_shelf_value = ( '1' === $value ) ? '1' : '0';
-
-            if ( ! isset( $_REQUEST['post'] ) || ! is_array( $_REQUEST['post'] ) ) {
-                return;
-            }
-
-            $post_ids = array_map( 'intval', $_REQUEST['post'] );
-
-            foreach ( $post_ids as $post_id ) {
-                if ( $post_id <= 0 ) {
-                    continue;
-                }
-
-                // Only update our CPT
-                if ( get_post_type( $post_id ) !== self::CPT ) {
-                    continue;
-                }
-
-                update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf_value );
-            }
-        }
-
-        /**
-         * Add meta box for paint details.
-         */
-        public function add_meta_boxes() {
-            add_meta_box(
-                'pct_paint_details',
-                __( 'Paint details', 'pct' ),
-                [ $this, 'render_paint_meta_box' ],
-                self::CPT,
-                'normal',
-                'default'
-            );
-        }
-
-        /**
-         * Render the meta box HTML (delegated to admin/template.php).
-         */
-        public function render_paint_meta_box( $post ) {
-
-            $number   = get_post_meta( $post->ID, self::META_NUMBER, true );
-            $hex      = get_post_meta( $post->ID, self::META_HEX, true );
-            $on_shelf = get_post_meta( $post->ID, self::META_ON_SHELF, true );
-
-            // Reuse helper to normalise links (handles legacy + array formats)
-            $links = $this->get_paint_links( $post->ID );
-
-            // Variables for the admin template
-            $pct_admin_view  = 'meta_box';
-            $pct_number      = $number;
-            $pct_hex         = $hex;
-            $pct_on_shelf    = $on_shelf;
-            $pct_links       = $links;
-
-            include plugin_dir_path( __FILE__ ) . 'admin/template.php';
-        }
-
-        /**
-         * Save meta box fields (including on-shelf flag & multiple links).
-         * Handles both full edit screen and Quick Edit saves.
-         */
-        public function save_paint_meta( $post_id, $post ) {
-
-            // Allow either the main meta box nonce OR the Quick Edit nonce.
-            $has_meta_nonce = (
-                isset( $_POST['pct_paint_meta_nonce'] ) &&
-                wp_verify_nonce( $_POST['pct_paint_meta_nonce'], 'pct_save_paint_meta' )
-            );
-
-            $has_inline_nonce = (
-                isset( $_POST['_inline_edit'] ) &&
-                wp_verify_nonce( $_POST['_inline_edit'], 'inlineeditnonce' )
-            );
-
-            if ( ! $has_meta_nonce && ! $has_inline_nonce ) {
-                return;
-            }
-
-            if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
-                return;
-            }
-
-            if ( ! current_user_can( 'edit_post', $post_id ) ) {
-                return;
-            }
-
-            /**
-             * QUICK EDIT SAVE
-             * Only update the on_shelf flag, do NOT touch number/hex/links.
-             * (Bulk edit is handled separately in handle_bulk_edit())
-             */
-            if ( $has_inline_nonce && ! $has_meta_nonce ) {
-                // Checkbox: checked => key present, unchecked => no key
-                $on_shelf = isset( $_POST['pct_on_shelf'] ) ? '1' : '0';
-                update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
-                return;
-            }
-
-            /**
-             * FULL EDIT SCREEN SAVE
-             * Meta box was present, so we have all fields available.
-             */
-            if ( ! $has_meta_nonce ) {
-                // Not a full edit save, nothing more to do here.
-                return;
-            }
-
-            $number   = isset( $_POST['pct_number'] ) ? sanitize_text_field( wp_unslash( $_POST['pct_number'] ) ) : '';
-            $hex      = isset( $_POST['pct_hex'] ) ? sanitize_text_field( wp_unslash( $_POST['pct_hex'] ) ) : '';
-            $on_shelf = isset( $_POST['pct_on_shelf'] ) ? '1' : '0';
-
-            update_post_meta( $post_id, self::META_NUMBER,   $number );
-            update_post_meta( $post_id, self::META_HEX,      $hex );
-            update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
-
-            // Multiple links with titles
-            $titles = isset( $_POST['pct_links_title'] ) && is_array( $_POST['pct_links_title'] )
-                ? array_map( 'wp_unslash', $_POST['pct_links_title'] )
-                : [];
-
-            $urls   = isset( $_POST['pct_links_url'] ) && is_array( $_POST['pct_links_url'] )
-                ? array_map( 'wp_unslash', $_POST['pct_links_url'] )
-                : [];
-
-            $links = [];
-            $count = max( count( $titles ), count( $urls ) );
-
-            for ( $i = 0; $i < $count; $i++ ) {
-                $title = isset( $titles[ $i ] ) ? trim( $titles[ $i ] ) : '';
-                $url   = isset( $urls[ $i ] )   ? trim( $urls[ $i ] )   : '';
-
-                if ( '' === $url ) {
-                    continue; // skip empty rows
-                }
-
-                $links[] = [
-                    'title' => sanitize_text_field( $title ),
-                    'url'   => esc_url_raw( $url ),
-                ];
-            }
-
-            if ( ! empty( $links ) ) {
-                update_post_meta( $post_id, self::META_LINKS, $links );
-                update_post_meta( $post_id, self::META_LINK,  $links[0]['url'] );
-            } else {
-                delete_post_meta( $post_id, self::META_LINKS );
-                delete_post_meta( $post_id, self::META_LINK );
-            }
         }
 
         /**
@@ -466,14 +392,14 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         public function enqueue_frontend_assets() {
             wp_enqueue_style(
                 'pct_paint_table',
-                plugin_dir_url( __FILE__ ) . 'style.css',
+                plugin_dir_url( __FILE__ ) . 'public/css/style.css',
                 [],
                 self::VERSION
             );
 
             wp_enqueue_script(
                 'pct_mixing_helper',
-                plugin_dir_url( __FILE__ ) . 'mixing-helper.js',
+                plugin_dir_url( __FILE__ ) . 'public/js/mixing-helper.js',
                 [ 'jquery' ],
                 self::VERSION,
                 true
@@ -481,7 +407,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
             wp_enqueue_script(
                 'pct_shade_helper',
-                plugin_dir_url( __FILE__ ) . 'shade-helper.js',
+                plugin_dir_url( __FILE__ ) . 'public/js/shade-helper.js',
                 [ 'jquery' ],
                 self::VERSION,
                 true
@@ -492,9 +418,6 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
          * Shortcode handler:
          *
          * [paint_table range="vallejo-model-color" limit="-1" orderby="meta_number|title" shelf="yes|any"]
-         *
-         * - shelf="yes" => only paints marked "On the shelf"
-         * - shelf omitted or anything else => all paints in the range
          */
         public function shortcode_paint_table( $atts ) {
             $atts = shortcode_atts(
@@ -545,7 +468,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             if ( strtolower( $atts['shelf'] ) === 'yes' ) {
                 $meta_query[] = [
                     'key'     => self::META_ON_SHELF,
-                    'value'   => '1',
+                    'value'   => 1,
                     'compare' => '=',
                 ];
             }
@@ -557,10 +480,10 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $q = new WP_Query( $args );
 
             if ( ! $q->have_posts() ) {
-                return '<p>No paints found.</p>';
+                return '<p>' . esc_html__( 'No paints found.', 'pct' ) . '</p>';
             }
 
-            // Build data array for the template
+            // Build data array for the template.
             $paints_data = [];
 
             while ( $q->have_posts() ) {
@@ -588,8 +511,19 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $pct_mixing_page_url  = get_option( 'pct_mixing_page_url', '' );
 
             ob_start();
-            include plugin_dir_path( __FILE__ ) . 'paint-display-template.php';
+            include plugin_dir_path( __FILE__ ) . 'templates/paint-display.php';
             return ob_get_clean();
+        }
+
+        /**
+         * Helper: Get range title from slug.
+         */
+        private function get_range_title_by_slug( $slug ) {
+            $term = get_term_by( 'slug', $slug, self::TAX );
+            if ( $term && ! is_wp_error( $term ) ) {
+                return $term->name;
+            }
+            return '';
         }
 
         /**
@@ -603,7 +537,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 [
                     'taxonomy'   => self::TAX,
                     'hide_empty' => false,
-                    'orderby'    => 'name',
+                    'orderby'    => 'term_order',
                     'order'      => 'ASC',
                 ]
             );
@@ -612,9 +546,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 return '<p>' . esc_html__( 'No paint ranges found.', 'pct' ) . '</p>';
             }
 
-            // Query all paints in these ranges, ordered by number
-            $range_ids = wp_list_pluck( $ranges, 'term_id' );
-
+            // Query all paints, ordered by number
             $q = new WP_Query(
                 [
                     'post_type'      => self::CPT,
@@ -623,13 +555,6 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     'orderby'        => 'meta_value',
                     'order'          => 'ASC',
                     'meta_key'       => self::META_NUMBER,
-                    'tax_query'      => [
-                        [
-                            'taxonomy' => self::TAX,
-                            'field'    => 'term_id',
-                            'terms'    => $range_ids,
-                        ],
-                    ],
                 ]
             );
 
@@ -678,7 +603,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $pct_paints = $paints;
 
             ob_start();
-            include plugin_dir_path( __FILE__ ) . 'mixing-helper-template.php';
+            include plugin_dir_path( __FILE__ ) . 'templates/mixing-helper.php';
             return ob_get_clean();
         }
 
@@ -696,7 +621,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 $raw_hex = rawurldecode( $raw_hex );
                 $raw_hex = sanitize_text_field( $raw_hex );
                 $raw_hex = trim( $raw_hex );
-            
+
                 if ( '' !== $raw_hex ) {
                     // Ensure it starts with '#'
                     if ( $raw_hex[0] !== '#' ) {
@@ -711,18 +636,19 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 [
                     'taxonomy'   => self::TAX,
                     'hide_empty' => false,
-                    'orderby'    => 'name',
+                    'orderby'    => 'term_order',
                     'order'      => 'ASC',
                 ]
             );
 
             if ( is_wp_error( $ranges ) || empty( $ranges ) ) {
-                return '<p>' . esc_html__( 'No paint ranges found.', 'pct' ) . '</p>';
+                return '<p>' . esc_html__( 'No paint ranges found for shade helper.', 'pct' ) . '</p>';
             }
 
-            // Query all paints in these ranges, ordered by number
+            // Get their IDs for the query
             $range_ids = wp_list_pluck( $ranges, 'term_id' );
 
+            // Query all paints in these ranges, ordered by number
             $q = new WP_Query(
                 [
                     'post_type'      => self::CPT,
@@ -787,7 +713,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $pct_default_shade_hex = $default_shade_hex;
 
             ob_start();
-            include plugin_dir_path( __FILE__ ) . 'shade-helper-template.php';
+            include plugin_dir_path( __FILE__ ) . 'templates/shade-helper.php';
             return ob_get_clean();
         }
 
@@ -805,51 +731,38 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     return [
                         [
                             'title' => '',
-                            'url'   => $single,
+                            'url'   => esc_url( $single ),
                         ],
                     ];
                 }
                 return [];
             }
 
-            // If it’s an array of simple URLs, normalise to [title,url] arrays
-            if ( is_array( $links ) ) {
-                $first = reset( $links );
-                if ( is_string( $first ) ) {
-                    $normalised = [];
-                    foreach ( $links as $url ) {
-                        $normalised[] = [
-                            'title' => '',
-                            'url'   => $url,
-                        ];
-                    }
-                    return $normalised;
+            // Normalise & sanitise
+            $normalised = [];
+            foreach ( $links as $link ) {
+                if ( ! is_array( $link ) ) {
+                    continue;
+                }
+
+                $title = isset( $link['title'] ) ? sanitize_text_field( $link['title'] ) : '';
+                $url   = isset( $link['url'] ) ? esc_url( $link['url'] ) : '';
+
+                if ( $url ) {
+                    $normalised[] = [
+                        'title' => $title,
+                        'url'   => $url,
+                    ];
                 }
             }
 
-            return is_array( $links ) ? $links : [];
+            return $normalised;
         }
-
+        
         /**
-         * Helper: get range title (term name) from slug.
-         */
-        private function get_range_title_by_slug( $slug ) {
-            if ( ! $slug ) {
-                return '';
-            }
-
-            $term = get_term_by( 'slug', $slug, self::TAX );
-            if ( $term && ! is_wp_error( $term ) ) {
-                return $term->name;
-            }
-
-            return '';
-        }
-
-        /**
-         * Helper: render paint options for mixing/shade dropdowns.
+         * Render paint options for mixer / shade helper dropdowns.
          *
-         * @param array $paints Array of paints.
+         * @param array $paints Array of paints with keys: id, name, number, hex, range_id.
          */
         public static function render_mix_paint_options( $paints ) {
             foreach ( $paints as $paint ) {
@@ -911,20 +824,6 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         }
 
         /**
-         * Register "Info & Settings" submenu.
-         */
-        public function register_info_settings_page() {
-            add_submenu_page(
-                'edit.php?post_type=' . self::CPT,
-                __( 'Info & Settings', 'pct' ),
-                __( 'Info & Settings', 'pct' ),
-                'manage_options',
-                'pct-info-settings',
-                [ $this, 'render_info_settings_page' ]
-            );
-        }
-
-        /**
          * Register "Export to CSV" submenu.
          */
         public function register_export_page() {
@@ -939,8 +838,22 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         }
 
         /**
+         * Register "Info & Settings" submenu.
+         */
+        public function register_info_settings_page() {
+            add_submenu_page(
+                'edit.php?post_type=' . self::CPT,
+                __( 'Info & Settings', 'pct' ),
+                __( 'Info & Settings', 'pct' ),
+                'manage_options',
+                'pct-info-settings',
+                [ $this, 'render_info_settings_page' ]
+            );
+        }
+
+        /**
          * Render the Info & Settings page and handle saving the URL option.
-         * Delegates HTML to admin/template.php.
+         * Delegates HTML to admin/admin-page.php.
          */
         public function render_info_settings_page() {
             if ( ! current_user_can( 'manage_options' ) ) {
@@ -952,8 +865,10 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             if ( isset( $_POST['pct_info_settings_submit'] ) ) {
                 check_admin_referer( 'pct_info_settings', 'pct_info_settings_nonce' );
 
-                $url_raw = isset( $_POST['pct_mixing_page_url'] ) ? wp_unslash( $_POST['pct_mixing_page_url'] ) : '';
-                $url     = esc_url_raw( trim( $url_raw ) );
+                $url = '';
+                if ( isset( $_POST['pct_mixing_page_url'] ) ) {
+                    $url = esc_url_raw( wp_unslash( $_POST['pct_mixing_page_url'] ) );
+                }
 
                 update_option( 'pct_mixing_page_url', $url );
                 $message = __( 'Settings saved.', 'pct' );
@@ -963,12 +878,12 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $pct_info_message = $message;
             $pct_info_url     = get_option( 'pct_mixing_page_url', '' );
 
-            include plugin_dir_path( __FILE__ ) . 'admin/template.php';
+            include plugin_dir_path( __FILE__ ) . 'admin/admin-page.php';
         }
 
         /**
          * Render the CSV import page + handle form submission.
-         * Delegates HTML to admin/template.php.
+         * Delegates HTML to admin/admin-page.php.
          */
         public function render_import_page() {
             if ( ! current_user_can( 'manage_options' ) ) {
@@ -1003,195 +918,283 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     } else {
                         $file_path = $uploaded_file['file'];
 
-                        $created = 0;
-                        $handle  = fopen( $file_path, 'r' );
+                        $result = $this->import_csv_file( $file_path, $range_id );
 
-                        if ( $handle ) {
-                            $row = 0;
-                            while ( ( $data = fgetcsv( $handle, 0, ',' ) ) !== false ) {
-                                $row++;
-
-                                // Skip header row
-                                if ( 1 === $row ) {
-                                    continue;
-                                }
-
-                                // Expecting at least 3 columns: name, number, hex
-                                if ( count( $data ) < 3 ) {
-                                    continue;
-                                }
-
-                                $name   = trim( $data[0] );
-                                $number = trim( $data[1] );
-                                $hex    = trim( $data[2] );
-
-                                // Optional 4th column: On shelf (yes/no)
-                                $on_shelf_raw = isset( $data[3] ) ? trim( $data[3] ) : '';
-                                $on_shelf_val = '0';
-
-                                if ( $on_shelf_raw !== '' ) {
-                                    $lower = strtolower( $on_shelf_raw );
-                                    if ( in_array( $lower, [ 'yes', 'y', '1', 'true' ], true ) ) {
-                                        $on_shelf_val = '1';
-                                    }
-                                }
-
-                                if ( '' === $name ) {
-                                    continue;
-                                }
-
-                                $post_id = wp_insert_post(
-                                    [
-                                        'post_type'   => self::CPT,
-                                        'post_status' => 'publish',
-                                        'post_title'  => $name,
-                                    ]
-                                );
-
-                                if ( ! is_wp_error( $post_id ) && $post_id ) {
-                                    update_post_meta( $post_id, self::META_NUMBER,   $number );
-                                    update_post_meta( $post_id, self::META_HEX,      $hex );
-                                    update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf_val );
-                                    wp_set_object_terms( $post_id, $range_id, self::TAX );
-                                    $created++;
-                                }
-                            }
-                            fclose( $handle );
-
-                            $message = sprintf(
-                                _n( 'Imported %d paint.', 'Imported %d paints.', $created, 'pct' ),
-                                $created
-                            );
+                        if ( is_wp_error( $result ) ) {
+                            $errors[] = $result->get_error_message();
                         } else {
-                            $errors[] = __( 'Unable to open the uploaded CSV file.', 'pct' );
+                            $message = sprintf(
+                                /* translators: %d: number of paints imported */
+                                __( 'Imported %d paints.', 'pct' ),
+                                intval( $result )
+                            );
                         }
                     }
                 }
             }
 
-            $pct_admin_view    = 'import_page';
-            $pct_import_msg    = $message;
-            $pct_import_errors = $errors;
+            $pct_admin_view     = 'import_page';
+            $pct_import_message = $message;
+            $pct_import_errors  = $errors;
 
-            include plugin_dir_path( __FILE__ ) . 'admin/template.php';
+            $pct_import_ranges = get_terms(
+                [
+                    'taxonomy'   => self::TAX,
+                    'hide_empty' => false,
+                    'orderby'    => 'term_order',
+                    'order'      => 'ASC',
+                ]
+            );
+
+            include plugin_dir_path( __FILE__ ) . 'admin/admin-page.php';
         }
 
         /**
-         * Render the CSV export page and handle export submission.
-         * Delegates HTML to admin/template.php when not exporting.
+         * Render the CSV export page and handle output.
+         * Delegates HTML to admin/admin-page.php when not exporting.
          */
         public function render_export_page() {
             if ( ! current_user_can( 'manage_options' ) ) {
                 wp_die( esc_html__( 'You do not have permission to access this page.', 'pct' ) );
             }
 
-            $errors = [];
-
-            // If the export form was submitted, stream the CSV and exit.
-            if ( isset( $_POST['pct_export_submit'] ) ) {
+            // If user clicked "Download", output CSV and exit.
+            if ( isset( $_POST['pct_export_download'] ) ) {
                 check_admin_referer( 'pct_export_paints', 'pct_export_nonce' );
-
-                $range_id = isset( $_POST['pct_range'] ) ? intval( $_POST['pct_range'] ) : 0;
-                $shelf    = isset( $_POST['pct_shelf'] ) ? sanitize_text_field( wp_unslash( $_POST['pct_shelf'] ) ) : 'any';
-
-                if ( ! $range_id ) {
-                    $errors[] = __( 'Please choose a paint range.', 'pct' );
-                }
-
-                if ( empty( $errors ) ) {
-                    $term = get_term( $range_id, self::TAX );
-
-                    $args = [
-                        'post_type'      => self::CPT,
-                        'posts_per_page' => -1,
-                        'post_status'    => 'publish',
-                        'orderby'        => 'meta_value',
-                        'order'          => 'ASC',
-                        'meta_key'       => self::META_NUMBER,
-                        'tax_query'      => [
-                            [
-                                'taxonomy' => self::TAX,
-                                'field'    => 'term_id',
-                                'terms'    => $range_id,
-                            ],
-                        ],
-                    ];
-
-                    // Optional shelf filter
-                    if ( strtolower( $shelf ) === 'yes' ) {
-                        $args['meta_query'] = [
-                            [
-                                'key'     => self::META_ON_SHELF,
-                                'value'   => '1',
-                                'compare' => '=',
-                            ],
-                        ];
-                    }
-
-                    $q = new WP_Query( $args );
-
-                    // Prepare filename (fallback if term is missing)
-                    $slug = ( $term && ! is_wp_error( $term ) && ! empty( $term->slug ) )
-                        ? $term->slug
-                        : 'paints';
-
-                    $filename = sprintf(
-                        '%s-export-%s.csv',
-                        $slug,
-                        gmdate( 'Ymd-His' )
-                    );
-
-                    // Make sure nothing else is sent before headers
-                    if ( ob_get_length() ) {
-                        @ob_end_clean();
-                    }
-
-                    nocache_headers();
-                    header( 'Content-Type: text/csv; charset=utf-8' );
-                    header( 'Content-Disposition: attachment; filename=' . $filename );
-
-                    $output = fopen( 'php://output', 'w' );
-
-                    // CSV header row as requested
-                    fputcsv( $output, [ 'Name', 'Number', 'Hex', 'On shelf' ] );
-
-                    if ( $q->have_posts() ) {
-                        while ( $q->have_posts() ) {
-                            $q->the_post();
-                            $post_id  = get_the_ID();
-                            $name     = get_the_title();
-                            $number   = get_post_meta( $post_id, self::META_NUMBER, true );
-                            $hex      = get_post_meta( $post_id, self::META_HEX, true );
-                            $on_shelf = get_post_meta( $post_id, self::META_ON_SHELF, true );
-                            $on_shelf = ( $on_shelf === '1' ) ? 'yes' : 'no';
-
-                            fputcsv(
-                                $output,
-                                [
-                                    $name,
-                                    $number,
-                                    $hex,
-                                    $on_shelf,
-                                ]
-                            );
-                        }
-                        wp_reset_postdata();
-                    }
-
-                    fclose( $output );
-                    exit; // Stop normal page rendering – we just output a file
-                }
+                $this->export_csv();
+                exit;
             }
 
-            // First load OR validation errors: show the Export form.
-            $pct_admin_view    = 'export_page';
-            $pct_export_errors = $errors;
+            $pct_admin_view = 'export_page';
 
-            include plugin_dir_path( __FILE__ ) . 'admin/template.php';
+            include plugin_dir_path( __FILE__ ) . 'admin/admin-page.php';
+        }
+
+        /**
+         * Import paints from a CSV file into a specific range.
+         *
+         * Expected columns: title, number, hex, on_shelf (0/1)
+         */
+        private function import_csv_file( $file_path, $range_id ) {
+            if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
+                return new WP_Error( 'pct_csv_missing', __( 'CSV file is missing or not readable.', 'pct' ) );
+            }
+
+            $handle = fopen( $file_path, 'r' );
+            if ( ! $handle ) {
+                return new WP_Error( 'pct_csv_open', __( 'Unable to open CSV file.', 'pct' ) );
+            }
+
+            $row       = 0;
+            $imported  = 0;
+
+            // Optional: if first row is header, detect & skip
+            $first_row = fgetcsv( $handle );
+            if ( ! $first_row ) {
+                fclose( $handle );
+                return new WP_Error( 'pct_csv_empty', __( 'CSV file is empty.', 'pct' ) );
+            }
+
+            // If header row contains "title" etc., skip; otherwise treat as data.
+            $header = array_map( 'strtolower', $first_row );
+            if ( in_array( 'title', $header, true ) || in_array( 'number', $header, true ) ) {
+                // Already consumed header.
+            } else {
+                // Rewind to treat first row as data.
+                rewind( $handle );
+            }
+
+            while ( ( $data = fgetcsv( $handle ) ) !== false ) {
+                $row++;
+
+                $title     = isset( $data[0] ) ? sanitize_text_field( $data[0] ) : '';
+                $number    = isset( $data[1] ) ? sanitize_text_field( $data[1] ) : '';
+                $hex       = isset( $data[2] ) ? sanitize_text_field( $data[2] ) : '';
+                $on_shelf  = isset( $data[3] ) ? intval( $data[3] ) : 0;
+
+                if ( '' === $title ) {
+                    continue;
+                }
+
+                $post_id = wp_insert_post(
+                    [
+                        'post_type'   => self::CPT,
+                        'post_title'  => $title,
+                        'post_status' => 'publish',
+                    ]
+                );
+
+                if ( is_wp_error( $post_id ) ) {
+                    continue;
+                }
+
+                update_post_meta( $post_id, self::META_NUMBER, $number );
+                update_post_meta( $post_id, self::META_HEX, $hex );
+                update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
+
+                // Assign to range
+                wp_set_post_terms( $post_id, [ $range_id ], self::TAX );
+
+                $imported++;
+            }
+
+            fclose( $handle );
+
+            return $imported;
+        }
+
+        /**
+         * Export paints to CSV and stream to browser.
+         */
+        private function export_csv() {
+            $filename = 'paint-export-' . date( 'Y-m-d-H-i-s' ) . '.csv';
+
+            header( 'Content-Type: text/csv; charset=utf-8' );
+            header( 'Content-Disposition: attachment; filename=' . $filename );
+
+            $output = fopen( 'php://output', 'w' );
+
+            // Header row
+            fputcsv( $output, [ 'title', 'number', 'hex', 'on_shelf', 'ranges' ] );
+
+            $query = new WP_Query(
+                [
+                    'post_type'      => self::CPT,
+                    'posts_per_page' => -1,
+                    'post_status'    => 'publish',
+                    'orderby'        => 'title',
+                    'order'          => 'ASC',
+                ]
+            );
+
+            if ( $query->have_posts() ) {
+                while ( $query->have_posts() ) {
+                    $query->the_post();
+                    $post_id = get_the_ID();
+
+                    $title    = get_the_title();
+                    $number   = get_post_meta( $post_id, self::META_NUMBER, true );
+                    $hex      = get_post_meta( $post_id, self::META_HEX, true );
+                    $on_shelf = get_post_meta( $post_id, self::META_ON_SHELF, true );
+
+                    $ranges = wp_get_post_terms( $post_id, self::TAX );
+                    $range_names = wp_list_pluck( $ranges, 'name' );
+                    $range_str   = implode( '|', $range_names );
+
+                    fputcsv(
+                        $output,
+                        [
+                            $title,
+                            $number,
+                            $hex,
+                            $on_shelf,
+                            $range_str,
+                        ]
+                    );
+                }
+                wp_reset_postdata();
+            }
+
+            fclose( $output );
+        }
+
+        /**
+         * Columns in the admin list table.
+         */
+        public function manage_edit_columns( $columns ) {
+            $new_columns = [];
+
+            // Always keep the checkbox first
+            if ( isset( $columns['cb'] ) ) {
+                $new_columns['cb'] = $columns['cb'];
+            }
+
+            // Title first
+            $new_columns['title'] = __( 'Title', 'pct' );
+
+            // Then our custom columns
+            $new_columns['pct_number']    = __( 'Number', 'pct' );
+            $new_columns['pct_hex']       = __( 'Hex', 'pct' );
+            $new_columns['pct_on_shelf']  = __( 'On Shelf?', 'pct' );
+
+            // We intentionally DO NOT re-add 'date', so it disappears
+
+            return $new_columns;
+        }
+
+        /**
+         * Render custom column content.
+         */
+        public function manage_custom_column( $column, $post_id ) {
+            if ( 'pct_number' === $column ) {
+                $number = get_post_meta( $post_id, self::META_NUMBER, true );
+                echo esc_html( $number );
+            } elseif ( 'pct_hex' === $column ) {
+                $hex = get_post_meta( $post_id, self::META_HEX, true );
+                echo esc_html( $hex );
+            } elseif ( 'pct_on_shelf' === $column ) {
+                $on_shelf = get_post_meta( $post_id, self::META_ON_SHELF, true );
+                ?>
+                <span class="pct-on-shelf-value" data-on-shelf="<?php echo esc_attr( $on_shelf ); ?>">
+                    <?php echo $on_shelf ? '✔' : '—'; ?>
+                </span>
+                <?php
+            }
+        }
+
+        /**
+         * Make columns sortable.
+         */
+        public function sortable_columns( $columns ) {
+            $columns['pct_number'] = 'pct_number';
+            return $columns;
+        }
+
+        /**
+         * Handle admin sorting for Paint Colours.
+         *
+         * - Default: order by Number (meta_value of META_NUMBER).
+         * - When clicking the Number column: also order by Number.
+         * - When clicking other columns (e.g. Title): respect core behaviour.
+         */
+        public function handle_admin_sorting( $query ) {
+            if ( ! is_admin() || ! $query->is_main_query() ) {
+                return;
+            }
+
+            $screen = get_current_screen();
+            if ( empty( $screen ) || self::CPT !== $screen->post_type ) {
+                return;
+            }
+
+            $orderby = $query->get( 'orderby' );
+
+            // If user explicitly clicked the Number column
+            if ( 'pct_number' === $orderby ) {
+                $query->set( 'meta_key', self::META_NUMBER );
+                $query->set( 'orderby', 'meta_value' );
+                return;
+            }
+
+            // No explicit order set (initial load) → default to Number ASC
+            if ( empty( $orderby ) ) {
+                $query->set( 'meta_key', self::META_NUMBER );
+                $query->set( 'orderby', 'meta_value' );
+                $query->set( 'order', 'ASC' );
+            }
         }
     }
-}
 
-if ( class_exists( 'PCT_Paint_Table_Plugin' ) ) {
-    new PCT_Paint_Table_Plugin();
+    // Bootstrap plugin
+    function pct_paint_table_plugin_init() {
+        static $instance = null;
+
+        if ( null === $instance ) {
+            $instance = new PCT_Paint_Table_Plugin();
+        }
+
+        return $instance;
+    }
+
+    pct_paint_table_plugin_init();
 }

@@ -30,7 +30,7 @@
     margin: 0 auto;
 }
 
-/* Header background + text */
+/* Header background + text (default / dots mode) */
 .pct-table-container table.pct-table thead {
     background-color: #111827;
 }
@@ -41,6 +41,16 @@
     text-align: center;
 }
 
+/* Header styling adjustments when using full-row colour mode */
+.pct-table-container.pct-table-mode-rows table.pct-table thead {
+    background-color: #ffffff !important; /* remove dark background */
+}
+
+.pct-table-container.pct-table-mode-rows table.pct-table thead th {
+    color: #111827 !important;     /* dark readable text */
+    font-weight: 700 !important;   /* stronger header */
+}
+
 /* Cells (header + body) */
 .pct-table-container table.pct-table th,
 .pct-table-container table.pct-table td {
@@ -49,14 +59,23 @@
     text-align: center;
 }
 
-/* Zebra striping – applied directly to cells with !important
-   so theme hover styles cannot override it */
-.pct-table-container table.pct-table tbody tr:nth-child(odd) td {
+/* Zebra striping (only when not in row-highlight mode) */
+.pct-table-container:not(.pct-row-highlight-mode) table.pct-table tbody tr:nth-child(odd) td {
     background-color: #ffffff !important;
 }
 
-.pct-table-container table.pct-table tbody tr:nth-child(even) td {
+.pct-table-container:not(.pct-row-highlight-mode) table.pct-table tbody tr:nth-child(even) td {
     background-color: #f7f7f7 !important;
+}
+
+/* In row-highlight mode, let inline row colours show through */
+.pct-table-container.pct-row-highlight-mode table.pct-table tbody tr td {
+    background-color: transparent !important;
+}
+
+/* Clickable rows in row-highlight mode (link to shade helper) */
+.pct-table-container.pct-row-highlight-mode table.pct-table tbody tr.pct-row-clickable {
+    cursor: pointer;
 }
 
 /* Swatch column */

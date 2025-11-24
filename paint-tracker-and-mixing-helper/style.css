@@ -141,6 +141,13 @@
     max-width: 640px;    /* container width */
 }
 
+.pct-mix-header {
+    text-align: center;
+    font-weight: 700;
+    font-size: 20px;
+    margin-bottom: 12px;
+}
+
 .pct-mix-row {
     display: flex;
     flex-wrap: wrap;
@@ -204,7 +211,7 @@
    ============================ */
 
 .pct-mix-result-block {
-    display: flex;
+    display: none; /* hidden by default; JS sets flex when there’s a result */
     flex-direction: column;
     align-items: center;
     margin-top: 16px;
@@ -226,14 +233,13 @@
 }
 
 .pct-mix-result-swatch {
-    display: inline-block;
+    display: none; /* hidden by default */
     width: 5rem;
     height: 5rem;
     border-radius: 999px;
     border: 1px solid rgba(0,0,0,.18);
     box-shadow: 0 0 0 1px rgba(255,255,255,.5) inset;
 }
-
 
 /* ============================
    Shade helper (separate tool)
@@ -303,6 +309,11 @@
     border-width: 2px;
 }
 
+/* Ensure mixer result row stays hidden on load, even though it reuses pct-shade-row classes */
+.pct-mix-result-block.pct-shade-row {
+    display: none;
+}
+
 .pct-shade-meta {
     flex: 1 1 auto;
 }
@@ -310,11 +321,6 @@
 .pct-shade-ratio {
     font-size: 13px;
     font-weight: 500;
-}
-
-.pct-shade-paint {
-    font-size: 12px;
-    /* no fixed color here so it can inherit white/black from row */
 }
 
 .pct-shade-hex {
@@ -443,24 +449,3 @@
 .pct-mix-range-option.is-selected {
     box-shadow: inset 0 0 0 2px rgba(255,255,255,.6);
 }
-
-/* Mixer result styled like shade helper */
-#pct-mix-result-row {
-    width: 100%;
-    border-radius: 6px;
-    padding: 8px 10px;
-    margin-top: 12px;
-    box-sizing: border-box;
-}
-
-#pct-mix-result-label-text {
-    font-size: 15px;
-    font-weight: 600;
-    margin-bottom: 2px;
-}
-
-#pct-mix-result-hex {
-    font-size: 13px;
-    opacity: 0.9;
-}
-

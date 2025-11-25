@@ -38,7 +38,7 @@ Use this to group paints — for example:
 
 ## 📊 Shortcodes
 
-### ### `[paint_table]`
+### `[paint_table]`
 Displays a table of paints, optionally filtered by range.
 
 **Attributes:**

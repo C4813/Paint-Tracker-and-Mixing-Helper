@@ -38,7 +38,7 @@ Use this to group paints — for example:
 
 ## 📊 Shortcodes
 
-### `[paint_table]`
+### ### `[paint_table]`
 Displays a table of paints, optionally filtered by range.
 
 **Attributes:**
@@ -140,7 +140,7 @@ Options:
 
 ## 📝 License
 
-This project is distributed under the MIT License.
+This project is distributed under the GNU General Public License version 2.
 
 ---
 
@@ -155,4 +155,5 @@ Feature suggestions are welcome!
 **I am not a developer.** ChatGPT has done all of the heavy lifting here and whilst I more or less understand what it is doing, I would not have managed this by myself.
 
 ---
+
 

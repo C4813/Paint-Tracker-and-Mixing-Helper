@@ -5,8 +5,8 @@
  * Uses $pct_admin_view to decide what to render:
  * - 'meta_box'      : paint details meta box
  * - 'import_page'   : CSV import page
- * - 'info_settings' : info & settings page
  * - 'export_page'   : CSV export page
+ * - 'info_settings' : info & settings page
  */
 
 if ( ! isset( $pct_admin_view ) ) {
@@ -18,14 +18,20 @@ if ( 'meta_box' === $pct_admin_view ) : ?>
     <?php wp_nonce_field( 'pct_save_paint_meta', 'pct_paint_meta_nonce' ); ?>
 
     <p>
-        <label for="pct_number"><strong><?php esc_html_e( 'Paint number', 'paint-tracker-and-mixing-helper' ); ?></strong> (e.g. 70.800)</label><br>
+        <label for="pct_number">
+            <strong><?php esc_html_e( 'Paint number', 'paint-tracker-and-mixing-helper' ); ?></strong>
+            (e.g. 70.800)
+        </label><br>
         <input type="text" id="pct_number" name="pct_number"
             value="<?php echo isset( $pct_number ) ? esc_attr( $pct_number ) : ''; ?>"
             class="regular-text">
     </p>
 
     <p>
-        <label for="pct_hex"><strong><?php esc_html_e( 'Hex colour', 'paint-tracker-and-mixing-helper' ); ?></strong> (e.g. #2f353a)</label><br>
+        <label for="pct_hex">
+            <strong><?php esc_html_e( 'Hex colour', 'paint-tracker-and-mixing-helper' ); ?></strong>
+            (e.g. #2f353a)
+        </label><br>
         <input type="text" id="pct_hex" name="pct_hex"
             value="<?php echo isset( $pct_hex ) ? esc_attr( $pct_hex ) : ''; ?>"
             class="regular-text">
@@ -162,8 +168,96 @@ elseif ( 'import_page' === $pct_admin_view ) : ?>
     </div>
 
 <?php
-elseif ( 'info_settings' === $pct_admin_view ) : ?>
+elseif ( 'export_page' === $pct_admin_view ) : ?>
 
+    <div class="wrap">
+        <h1><?php esc_html_e( 'Export Paints to CSV', 'paint-tracker-and-mixing-helper' ); ?></h1>
+
+        <p>
+            <?php esc_html_e(
+                'Download your paint collection as a CSV file you can open in Excel, Numbers, or Google Sheets.',
+                'paint-tracker-and-mixing-helper'
+            ); ?>
+        </p>
+
+        <?php
+        // Optional filters: by range and "on shelf" status.
+        $ranges = get_terms(
+            [
+                'taxonomy'   => PCT_Paint_Table_Plugin::TAX,
+                'hide_empty' => false,
+                'orderby'    => 'name',
+                'order'      => 'ASC',
+            ]
+        );
+        ?>
+
+        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+            <?php wp_nonce_field( 'pct_export_paints', 'pct_export_nonce' ); ?>
+            <input type="hidden" name="action" value="pct_export_paints">
+
+            <table class="form-table" role="presentation">
+                <tbody>
+                    <tr>
+                        <th scope="row">
+                            <label for="pct_export_range">
+                                <?php esc_html_e( 'Limit to range', 'paint-tracker-and-mixing-helper' ); ?>
+                            </label>
+                        </th>
+                        <td>
+                            <select name="pct_export_range" id="pct_export_range">
+                                <option value="">
+                                    <?php esc_html_e( 'All ranges', 'paint-tracker-and-mixing-helper' ); ?>
+                                </option>
+                                <?php if ( ! is_wp_error( $ranges ) && ! empty( $ranges ) ) : ?>
+                                    <?php foreach ( $ranges as $range ) : ?>
+                                        <option value="<?php echo esc_attr( $range->term_id ); ?>">
+                                            <?php echo esc_html( $range->name ); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                            <p class="description">
+                                <?php esc_html_e(
+                                    'Optional: only export paints from a single paint range.',
+                                    'paint-tracker-and-mixing-helper'
+                                ); ?>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">
+                            <label for="pct_export_only_shelf">
+                                <?php esc_html_e( 'Only paints on shelf', 'paint-tracker-and-mixing-helper' ); ?>
+                            </label>
+                        </th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="pct_export_only_shelf"
+                                       id="pct_export_only_shelf"
+                                       value="1">
+                                <?php esc_html_e(
+                                    'Only export paints marked as “On the shelf”.',
+                                    'paint-tracker-and-mixing-helper'
+                                ); ?>
+                            </label>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p class="submit">
+                <button type="submit" class="button button-primary">
+                    <?php esc_html_e( 'Download CSV', 'paint-tracker-and-mixing-helper' ); ?>
+                </button>
+            </p>
+        </form>
+    </div>
+
+<?php
+elseif ( 'info_settings' === $pct_admin_view ) : ?>
     <div class="wrap">
         <h1><?php esc_html_e( 'Info & Settings', 'paint-tracker-and-mixing-helper' ); ?></h1>
 
@@ -358,5 +452,4 @@ elseif ( 'info_settings' === $pct_admin_view ) : ?>
     </div>
 
 <?php
-
 endif;

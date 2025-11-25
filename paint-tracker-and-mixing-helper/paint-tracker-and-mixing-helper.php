@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes and tools for tracking paints, displaying paint colour tables, and importing/exporting from CSV.
- * Version: 0.6.2
+ * Version: 0.6.3
  * Author: C4813
  * Text Domain: pct
  */
@@ -26,7 +26,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_LINK     = '_pct_link'; // legacy single link
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.6.2';
+        const VERSION = '0.6.3';
 
         public function __construct() {
             add_action( 'init',                    [ $this, 'register_types' ] );
@@ -532,6 +532,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 $links = $this->get_paint_links( $id );
 
                 $paints_data[] = [
+                    'id'     => $id,
                     'name'   => $name,
                     'number' => $number,
                     'hex'    => $hex,
@@ -650,15 +651,21 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
          * Shows the shade range helper as a standalone tool.
          */
         public function shortcode_shade_helper( $atts ) {
-            // Optional: default shade hex passed via URL when coming from [paint_table]
+            // Optional: default shade hex and paint ID passed via URL when coming from [paint_table]
             $default_shade_hex = '';
+            $default_shade_id  = 0;
+        
+            if ( isset( $_GET['pct_shade_id'] ) ) {
+                $default_shade_id = absint( $_GET['pct_shade_id'] );
+            }
+        
             if ( isset( $_GET['pct_shade_hex'] ) ) {
                 // Decode any %23 etc, then sanitise/trim
                 $raw_hex = wp_unslash( $_GET['pct_shade_hex'] );
                 $raw_hex = rawurldecode( $raw_hex );
                 $raw_hex = sanitize_text_field( $raw_hex );
                 $raw_hex = trim( $raw_hex );
-
+        
                 if ( '' !== $raw_hex ) {
                     // Ensure it starts with '#'
                     if ( $raw_hex[0] !== '#' ) {
@@ -667,7 +674,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     $default_shade_hex = $raw_hex;
                 }
             }
-
+        
             // Get all paint ranges
             $ranges = get_terms(
                 [
@@ -748,7 +755,8 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $pct_ranges            = $ranges;
             $pct_paints            = $paints;
             $pct_default_shade_hex = $default_shade_hex;
-
+            $pct_default_shade_id  = $default_shade_id;
+        
             ob_start();
             include plugin_dir_path( __FILE__ ) . 'templates/shade-helper.php';
             return ob_get_clean();
@@ -807,16 +815,16 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 $number   = isset( $paint['number'] ) ? $paint['number'] : '';
                 $hex      = isset( $paint['hex'] ) ? $paint['hex'] : '';
                 $range_id = isset( $paint['range_id'] ) ? (int) $paint['range_id'] : 0;
-
+        
                 if ( '' === $name || '' === $hex || ! $range_id ) {
                     continue;
                 }
-
+        
                 $label = $name;
                 if ( '' !== $number ) {
                     $label .= ' (' . $number . ')';
                 }
-
+        
                 // Choose text colour for contrast (simple luminance check)
                 $text_color = '#000000';
                 $hex_clean  = ltrim( $hex, '#' );
@@ -827,7 +835,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     $luminance = ( 0.299 * $r + 0.587 * $g + 0.114 * $b ) / 255;
                     $text_color = ( $luminance < 0.5 ) ? '#f9fafb' : '#111827';
                 }
-
+        
                 $style = sprintf(
                     'background-color:%1$s;color:%2$s;',
                     esc_attr( $hex ),
@@ -838,6 +846,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     data-hex="<?php echo esc_attr( $hex ); ?>"
                     data-label="<?php echo esc_attr( $label ); ?>"
                     data-range="<?php echo esc_attr( $range_id ); ?>"
+                    data-id="<?php echo isset( $paint['id'] ) ? esc_attr( $paint['id'] ) : ''; ?>"
                     style="<?php echo $style; ?>">
                     <span class="pct-mix-option-swatch"></span>
                     <span class="pct-mix-option-label"><?php echo esc_html( $label ); ?></span>

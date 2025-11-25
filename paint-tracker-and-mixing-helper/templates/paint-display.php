@@ -95,25 +95,34 @@ $container_class_attr = implode( ' ', array_map( 'sanitize_html_class', $contain
             </thead>
             <tbody>
             <?php foreach ( $pct_paints as $paint ) :
-                $name   = isset( $paint['name'] )   ? $paint['name']   : '';
-                $number = isset( $paint['number'] ) ? $paint['number'] : '';
-                $hex    = isset( $paint['hex'] )    ? $paint['hex']    : '';
+                $id     = isset( $paint['id'] )     ? (int) $paint['id'] : 0;
+                $name   = isset( $paint['name'] )   ? $paint['name']    : '';
+                $number = isset( $paint['number'] ) ? $paint['number']  : '';
+                $hex    = isset( $paint['hex'] )    ? $paint['hex']     : '';
                 $links  = isset( $paint['links'] )  && is_array( $paint['links'] )
                     ? $paint['links']
                     : [];
-
+                
                 // Build shade helper URL if one is configured.
                 $shade_url = '';
-                if ( $hex && ! empty( $pct_mixing_page_url ) ) {
-                    // Drop any leading '#' so it doesn't become a fragment.
-                    $param_hex = ltrim( $hex, '#' );
-
-                    // Let WordPress build the query string properly.
-                    $shade_url = add_query_arg(
-                        'pct_shade_hex',
-                        $param_hex,
-                        $pct_mixing_page_url
-                    );
+                if ( ! empty( $pct_mixing_page_url ) && ( $id || $hex ) ) {
+                    $args = [];
+                
+                    if ( $id ) {
+                        $args['pct_shade_id'] = $id;
+                    }
+                
+                    if ( $hex ) {
+                        // Drop any leading '#' so it doesn't become a fragment.
+                        $args['pct_shade_hex'] = ltrim( $hex, '#' );
+                    }
+                
+                    if ( ! empty( $args ) ) {
+                        $shade_url = add_query_arg(
+                            $args,
+                            $pct_mixing_page_url
+                        );
+                    }
                 }
 
                 $row_style   = '';

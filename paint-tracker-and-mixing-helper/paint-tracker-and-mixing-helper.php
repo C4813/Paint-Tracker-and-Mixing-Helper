@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
- * Description: Shortcodes and tools for tracking paints, displaying paint colour tables, and importing/exporting from CSV.
+ * Description: Shortcodes to display your miniature paint collection, as well as a mixing and shading helper for specific colours.
  * Version: 0.6.3
  * Author: C4813
  * Text Domain: pct

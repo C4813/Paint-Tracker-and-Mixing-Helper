@@ -6,6 +6,7 @@
  * - $pct_ranges            : array of WP_Term (paint ranges)
  * - $pct_paints            : array of paints: [ 'id', 'name', 'number', 'hex', 'range_id' ]
  * - $pct_default_shade_hex : string (optional hex from URL)
+ * - $pct_default_shade_id  : int    (optional paint ID from URL)
  */
 
 if ( ! isset( $pct_ranges, $pct_paints ) || empty( $pct_ranges ) || empty( $pct_paints ) ) {
@@ -13,10 +14,14 @@ if ( ! isset( $pct_ranges, $pct_paints ) || empty( $pct_ranges ) || empty( $pct_
 }
 
 $default_shade_hex = isset( $pct_default_shade_hex ) ? $pct_default_shade_hex : '';
+$default_shade_id  = isset( $pct_default_shade_id ) ? (int) $pct_default_shade_id : 0;
+
 ?>
 
 <!-- ========== SHADE RANGE HELPER (SEPARATE TOOL) ========== -->
-<div class="pct-shade-container" data-default-shade-hex="<?php echo esc_attr( $default_shade_hex ); ?>">
+<div class="pct-shade-container"
+     data-default-shade-hex="<?php echo esc_attr( $default_shade_hex ); ?>"
+     data-default-shade-id="<?php echo esc_attr( $default_shade_id ); ?>">
     <div class="pct-shade-helper">
         <div class="pct-shade-header">
             <?php esc_html_e( 'Shade helper', 'pct' ); ?>

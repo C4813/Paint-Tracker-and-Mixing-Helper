@@ -2,10 +2,14 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes to display your miniature paint collection, as well as a mixing and shading helper for specific colours.
- * Version: 0.7.0
+ * Version: 0.7.1
  * Author: C4813
- * Text Domain: pct
+ * Text Domain: paint-tracker-and-mixing-helper
+ * Domain Path: /languages
+ * License: GPLv2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
+
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -26,7 +30,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_LINK     = '_pct_link'; // legacy single link
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.7.0';
+        const VERSION = '0.7.1';
 
         public function __construct() {
             add_action( 'init',                    [ $this, 'register_types' ] );
@@ -56,6 +60,9 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             add_action( 'admin_menu',              [ $this, 'register_import_page' ] );
             add_action( 'admin_menu',              [ $this, 'register_export_page' ] );
             add_action( 'admin_menu',              [ $this, 'register_info_settings_page' ] );
+            
+            // Admin-post handler for CSV export
+            add_action( 'admin_post_pct_export_paints', [ $this, 'handle_export_paints' ] );
 
             // Admin: list table columns & sorting
             add_filter( 'manage_edit-' . self::CPT . '_columns',           [ $this, 'manage_edit_columns' ] );
@@ -69,7 +76,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
          */
         public function load_textdomain() {
             load_plugin_textdomain(
-                'pct',
+                'paint-tracker-and-mixing-helper',
                 false,
                 dirname( plugin_basename( __FILE__ ) ) . '/languages'
             );
@@ -85,10 +92,10 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 self::CPT,
                 [
                     'labels' => [
-                        'name'          => __( 'Paint Colours', 'pct' ),
-                        'singular_name' => __( 'Paint Colour', 'pct' ),
-                        'add_new_item'  => __( 'Add New Paint Colour', 'pct' ),
-                        'edit_item'     => __( 'Edit Paint Colour', 'pct' ),
+                        'name'          => __( 'Paint Colours', 'paint-tracker-and-mixing-helper' ),
+                        'singular_name' => __( 'Paint Colour', 'paint-tracker-and-mixing-helper' ),
+                        'add_new_item'  => __( 'Add New Paint Colour', 'paint-tracker-and-mixing-helper' ),
+                        'edit_item'     => __( 'Edit Paint Colour', 'paint-tracker-and-mixing-helper' ),
                     ],
                     'public'       => false,
                     'show_ui'      => true,
@@ -104,8 +111,8 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 self::CPT,
                 [
                     'labels' => [
-                        'name'          => __( 'Paint Ranges', 'pct' ),
-                        'singular_name' => __( 'Paint Range', 'pct' ),
+                        'name'          => __( 'Paint Ranges', 'paint-tracker-and-mixing-helper' ),
+                        'singular_name' => __( 'Paint Range', 'paint-tracker-and-mixing-helper' ),
                     ],
                     'public'       => false,
                     'show_ui'      => true,
@@ -121,7 +128,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         public function add_meta_boxes() {
             add_meta_box(
                 'pct_paint_details',
-                __( 'Paint Details', 'pct' ),
+                __( 'Paint Details', 'paint-tracker-and-mixing-helper' ),
                 [ $this, 'render_paint_meta_box' ],
                 self::CPT,
                 'normal',
@@ -281,19 +288,19 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             <fieldset class="inline-edit-col-left">
                 <div class="inline-edit-col">
                     <label>
-                        <span class="title"><?php esc_html_e( 'Number', 'pct' ); ?></span>
+                        <span class="title"><?php esc_html_e( 'Number', 'paint-tracker-and-mixing-helper' ); ?></span>
                         <span class="input-text-wrap">
                             <input type="text" name="pct_number" class="ptitle" value="">
                         </span>
                     </label>
                     <label>
-                        <span class="title"><?php esc_html_e( 'Hex', 'pct' ); ?></span>
+                        <span class="title"><?php esc_html_e( 'Hex', 'paint-tracker-and-mixing-helper' ); ?></span>
                         <span class="input-text-wrap">
                             <input type="text" name="pct_hex" class="ptitle" value="">
                         </span>
                     </label>
                     <label>
-                        <span class="title"><?php esc_html_e( 'On Shelf?', 'pct' ); ?></span>
+                        <span class="title"><?php esc_html_e( 'On Shelf?', 'paint-tracker-and-mixing-helper' ); ?></span>
                         <span class="input-text-wrap">
                             <input type="checkbox" name="pct_on_shelf" value="1">
                         </span>
@@ -415,9 +422,9 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 'pct_paint_table_admin',
                 'pctAdmin',
                 [
-                    'add_link_label'   => __( 'Add another link', 'pct' ),
-                    'link_title_label' => __( 'Link Title', 'pct' ),
-                    'link_url_label'   => __( 'Link URL', 'pct' ),
+                    'add_link_label'   => __( 'Add another link', 'paint-tracker-and-mixing-helper' ),
+                    'link_title_label' => __( 'Link Title', 'paint-tracker-and-mixing-helper' ),
+                    'link_url_label'   => __( 'Link URL', 'paint-tracker-and-mixing-helper' ),
                 ]
             );
         }
@@ -516,7 +523,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $q = new WP_Query( $args );
 
             if ( ! $q->have_posts() ) {
-                return '<p>' . esc_html__( 'No paints found.', 'pct' ) . '</p>';
+                return '<p>' . esc_html__( 'No paints found.', 'paint-tracker-and-mixing-helper' ) . '</p>';
             }
 
             // Build data array for the template.
@@ -581,7 +588,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             );
 
             if ( is_wp_error( $ranges ) || empty( $ranges ) ) {
-                return '<p>' . esc_html__( 'No paint ranges found.', 'pct' ) . '</p>';
+                return '<p>' . esc_html__( 'No paint ranges found.', 'paint-tracker-and-mixing-helper' ) . '</p>';
             }
 
             // Query all paints, ordered by number
@@ -597,7 +604,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             );
 
             if ( ! $q->have_posts() ) {
-                return '<p>' . esc_html__( 'No paints found for mixing.', 'pct' ) . '</p>';
+                return '<p>' . esc_html__( 'No paints found for mixing.', 'paint-tracker-and-mixing-helper' ) . '</p>';
             }
 
             $paints = [];
@@ -633,7 +640,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             wp_reset_postdata();
 
             if ( empty( $paints ) ) {
-                return '<p>' . esc_html__( 'No paints found for mixing.', 'pct' ) . '</p>';
+                return '<p>' . esc_html__( 'No paints found for mixing.', 'paint-tracker-and-mixing-helper' ) . '</p>';
             }
 
             // Expose to template
@@ -654,18 +661,18 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             // Optional: default shade hex and paint ID passed via URL when coming from [paint_table]
             $default_shade_hex = '';
             $default_shade_id  = 0;
-        
+
             if ( isset( $_GET['pct_shade_id'] ) ) {
                 $default_shade_id = absint( $_GET['pct_shade_id'] );
             }
-        
+
             if ( isset( $_GET['pct_shade_hex'] ) ) {
                 // Decode any %23 etc, then sanitise/trim
                 $raw_hex = wp_unslash( $_GET['pct_shade_hex'] );
                 $raw_hex = rawurldecode( $raw_hex );
                 $raw_hex = sanitize_text_field( $raw_hex );
                 $raw_hex = trim( $raw_hex );
-        
+
                 if ( '' !== $raw_hex ) {
                     // Ensure it starts with '#'
                     if ( $raw_hex[0] !== '#' ) {
@@ -674,7 +681,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     $default_shade_hex = $raw_hex;
                 }
             }
-        
+
             // Get all paint ranges
             $ranges = get_terms(
                 [
@@ -686,7 +693,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             );
 
             if ( is_wp_error( $ranges ) || empty( $ranges ) ) {
-                return '<p>' . esc_html__( 'No paint ranges found for shade helper.', 'pct' ) . '</p>';
+                return '<p>' . esc_html__( 'No paint ranges found for shade helper.', 'paint-tracker-and-mixing-helper' ) . '</p>';
             }
 
             // Get their IDs for the query
@@ -712,7 +719,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             );
 
             if ( ! $q->have_posts() ) {
-                return '<p>' . esc_html__( 'No paints found for shade helper.', 'pct' ) . '</p>';
+                return '<p>' . esc_html__( 'No paints found for shade helper.', 'paint-tracker-and-mixing-helper' ) . '</p>';
             }
 
             $paints = [];
@@ -748,7 +755,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             wp_reset_postdata();
 
             if ( empty( $paints ) ) {
-                return '<p>' . esc_html__( 'No paints found for shade helper.', 'pct' ) . '</p>';
+                return '<p>' . esc_html__( 'No paints found for shade helper.', 'paint-tracker-and-mixing-helper' ) . '</p>';
             }
 
             // Expose to template
@@ -756,7 +763,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $pct_paints            = $paints;
             $pct_default_shade_hex = $default_shade_hex;
             $pct_default_shade_id  = $default_shade_id;
-        
+
             ob_start();
             include plugin_dir_path( __FILE__ ) . 'templates/shade-helper.php';
             return ob_get_clean();
@@ -803,7 +810,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
             return $normalised;
         }
-        
+
         /**
          * Render paint options for mixer / shade helper dropdowns.
          *
@@ -811,20 +818,21 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
          */
         public static function render_mix_paint_options( $paints ) {
             foreach ( $paints as $paint ) {
+                $id       = isset( $paint['id'] ) ? (int) $paint['id'] : 0;
                 $name     = isset( $paint['name'] ) ? $paint['name'] : '';
                 $number   = isset( $paint['number'] ) ? $paint['number'] : '';
                 $hex      = isset( $paint['hex'] ) ? $paint['hex'] : '';
                 $range_id = isset( $paint['range_id'] ) ? (int) $paint['range_id'] : 0;
-        
+
                 if ( '' === $name || '' === $hex || ! $range_id ) {
                     continue;
                 }
-        
+
                 $label = $name;
                 if ( '' !== $number ) {
                     $label .= ' (' . $number . ')';
                 }
-        
+
                 // Choose text colour for contrast (simple luminance check)
                 $text_color = '#000000';
                 $hex_clean  = ltrim( $hex, '#' );
@@ -835,7 +843,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     $luminance = ( 0.299 * $r + 0.587 * $g + 0.114 * $b ) / 255;
                     $text_color = ( $luminance < 0.5 ) ? '#f9fafb' : '#111827';
                 }
-        
+
                 $style = sprintf(
                     'background-color:%1$s;color:%2$s;',
                     esc_attr( $hex ),
@@ -846,7 +854,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     data-hex="<?php echo esc_attr( $hex ); ?>"
                     data-label="<?php echo esc_attr( $label ); ?>"
                     data-range="<?php echo esc_attr( $range_id ); ?>"
-                    data-id="<?php echo isset( $paint['id'] ) ? esc_attr( $paint['id'] ) : ''; ?>"
+                    data-id="<?php echo esc_attr( $id ); ?>"
                     style="<?php echo $style; ?>">
                     <span class="pct-mix-option-swatch"></span>
                     <span class="pct-mix-option-label"><?php echo esc_html( $label ); ?></span>
@@ -861,8 +869,8 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         public function register_import_page() {
             add_submenu_page(
                 'edit.php?post_type=' . self::CPT,
-                __( 'Import Paints from CSV', 'pct' ),
-                __( 'Import from CSV', 'pct' ),
+                __( 'Import Paints from CSV', 'paint-tracker-and-mixing-helper' ),
+                __( 'Import from CSV', 'paint-tracker-and-mixing-helper' ),
                 'manage_options',
                 'pct-import-paints',
                 [ $this, 'render_import_page' ]
@@ -875,8 +883,8 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         public function register_export_page() {
             add_submenu_page(
                 'edit.php?post_type=' . self::CPT,
-                __( 'Export Paints to CSV', 'pct' ),
-                __( 'Export to CSV', 'pct' ),
+                __( 'Export Paints to CSV', 'paint-tracker-and-mixing-helper' ),
+                __( 'Export to CSV', 'paint-tracker-and-mixing-helper' ),
                 'manage_options',
                 'pct-export-paints',
                 [ $this, 'render_export_page' ]
@@ -889,8 +897,8 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         public function register_info_settings_page() {
             add_submenu_page(
                 'edit.php?post_type=' . self::CPT,
-                __( 'Info & Settings', 'pct' ),
-                __( 'Info & Settings', 'pct' ),
+                __( 'Info & Settings', 'paint-tracker-and-mixing-helper' ),
+                __( 'Info & Settings', 'paint-tracker-and-mixing-helper' ),
                 'manage_options',
                 'pct-info-settings',
                 [ $this, 'render_info_settings_page' ]
@@ -904,7 +912,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
          */
         public function render_info_settings_page() {
             if ( ! current_user_can( 'manage_options' ) ) {
-                wp_die( esc_html__( 'You do not have permission to access this page.', 'pct' ) );
+                wp_die( esc_html__( 'You do not have permission to access this page.', 'paint-tracker-and-mixing-helper' ) );
             }
 
             $message = '';
@@ -931,7 +939,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     update_option( 'pct_table_display_mode', $mode );
                 }
 
-                $message = __( 'Settings saved.', 'pct' );
+                $message = __( 'Settings saved.', 'paint-tracker-and-mixing-helper' );
             }
 
             // Pass values to the template
@@ -949,7 +957,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
          */
         public function render_import_page() {
             if ( ! current_user_can( 'manage_options' ) ) {
-                wp_die( esc_html__( 'You do not have permission to access this page.', 'pct' ) );
+                wp_die( esc_html__( 'You do not have permission to access this page.', 'paint-tracker-and-mixing-helper' ) );
             }
 
             $message = '';
@@ -960,11 +968,11 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
                 $range_id = isset( $_POST['pct_range'] ) ? intval( $_POST['pct_range'] ) : 0;
                 if ( ! $range_id ) {
-                    $errors[] = __( 'Please choose a paint range.', 'pct' );
+                    $errors[] = __( 'Please choose a paint range.', 'paint-tracker-and-mixing-helper' );
                 }
 
                 if ( empty( $_FILES['pct_csv']['tmp_name'] ) ) {
-                    $errors[] = __( 'Please upload a CSV file.', 'pct' );
+                    $errors[] = __( 'Please upload a CSV file.', 'paint-tracker-and-mixing-helper' );
                 }
 
                 if ( empty( $errors ) ) {
@@ -987,7 +995,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                         } else {
                             $message = sprintf(
                                 /* translators: %d: number of paints imported */
-                                __( 'Imported %d paints.', 'pct' ),
+                                __( 'Imported %d paints.', 'paint-tracker-and-mixing-helper' ),
                                 intval( $result )
                             );
                         }
@@ -1012,24 +1020,33 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         }
 
         /**
-         * Render the CSV export page and handle output.
-         * Delegates HTML to admin/admin-page.php when not exporting.
+         * Render the CSV export page (just the UI).
+         * Actual CSV download is handled via admin-post.php.
          */
         public function render_export_page() {
             if ( ! current_user_can( 'manage_options' ) ) {
-                wp_die( esc_html__( 'You do not have permission to access this page.', 'pct' ) );
+                wp_die( esc_html__( 'You do not have permission to access this page.', 'paint-tracker-and-mixing-helper' ) );
             }
-
-            // If user clicked "Download", output CSV and exit.
-            if ( isset( $_POST['pct_export_download'] ) ) {
-                check_admin_referer( 'pct_export_paints', 'pct_export_nonce' );
-                $this->export_csv();
-                exit;
-            }
-
+        
             $pct_admin_view = 'export_page';
-
+        
             include plugin_dir_path( __FILE__ ) . 'admin/admin-page.php';
+        }
+        
+        /**
+         * Handle CSV export via admin-post.php.
+         */
+        public function handle_export_paints() {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_die( esc_html__( 'You do not have permission to export paints.', 'paint-tracker-and-mixing-helper' ) );
+            }
+        
+            if ( ! isset( $_POST['pct_export_nonce'] ) || ! wp_verify_nonce( $_POST['pct_export_nonce'], 'pct_export_paints' ) ) {
+                wp_die( esc_html__( 'Security check failed.', 'paint-tracker-and-mixing-helper' ) );
+            }
+        
+            $this->export_csv();
+            exit;
         }
 
         /**
@@ -1039,12 +1056,12 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
          */
         private function import_csv_file( $file_path, $range_id ) {
             if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
-                return new WP_Error( 'pct_csv_missing', __( 'CSV file is missing or not readable.', 'pct' ) );
+                return new WP_Error( 'pct_csv_missing', __( 'CSV file is missing or not readable.', 'paint-tracker-and-mixing-helper' ) );
             }
 
             $handle = fopen( $file_path, 'r' );
             if ( ! $handle ) {
-                return new WP_Error( 'pct_csv_open', __( 'Unable to open CSV file.', 'pct' ) );
+                return new WP_Error( 'pct_csv_open', __( 'Unable to open CSV file.', 'paint-tracker-and-mixing-helper' ) );
             }
 
             $row       = 0;
@@ -1054,7 +1071,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $first_row = fgetcsv( $handle );
             if ( ! $first_row ) {
                 fclose( $handle );
-                return new WP_Error( 'pct_csv_empty', __( 'CSV file is empty.', 'pct' ) );
+                return new WP_Error( 'pct_csv_empty', __( 'CSV file is empty.', 'paint-tracker-and-mixing-helper' ) );
             }
 
             // If header row contains "title" etc., skip; otherwise treat as data.
@@ -1109,40 +1126,70 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
          * Export paints to CSV and stream to browser.
          */
         private function export_csv() {
+            // Make sure no stray output corrupts the CSV
+            if ( ob_get_length() ) {
+                ob_end_clean();
+            }
+        
             $filename = 'paint-export-' . date( 'Y-m-d-H-i-s' ) . '.csv';
-
+        
+            // Send headers
+            nocache_headers();
             header( 'Content-Type: text/csv; charset=utf-8' );
-            header( 'Content-Disposition: attachment; filename=' . $filename );
-
+            header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+        
             $output = fopen( 'php://output', 'w' );
-
+        
             // Header row
             fputcsv( $output, [ 'title', 'number', 'hex', 'on_shelf', 'ranges' ] );
-
-            $query = new WP_Query(
-                [
-                    'post_type'      => self::CPT,
-                    'posts_per_page' => -1,
-                    'post_status'    => 'publish',
-                    'orderby'        => 'title',
-                    'order'          => 'ASC',
-                ]
-            );
-
+        
+            // Base query
+            $args = [
+                'post_type'      => self::CPT,
+                'posts_per_page' => -1,
+                'post_status'    => 'publish',
+                'orderby'        => 'title',
+                'order'          => 'ASC',
+            ];
+        
+            // OPTIONAL FILTERS (only used if you add them to the form):
+            // Limit by range
+            if ( ! empty( $_POST['pct_export_range'] ) ) {
+                $args['tax_query'] = [
+                    [
+                        'taxonomy' => self::TAX,
+                        'field'    => 'term_id',
+                        'terms'    => (int) $_POST['pct_export_range'],
+                    ],
+                ];
+            }
+        
+            // Only paints marked as "on shelf"
+            if ( ! empty( $_POST['pct_export_only_shelf'] ) ) {
+                $args['meta_query'] = [
+                    [
+                        'key'   => self::META_ON_SHELF,
+                        'value' => '1',
+                    ],
+                ];
+            }
+        
+            $query = new WP_Query( $args );
+        
             if ( $query->have_posts() ) {
                 while ( $query->have_posts() ) {
                     $query->the_post();
                     $post_id = get_the_ID();
-
+        
                     $title    = get_the_title();
                     $number   = get_post_meta( $post_id, self::META_NUMBER, true );
                     $hex      = get_post_meta( $post_id, self::META_HEX, true );
                     $on_shelf = get_post_meta( $post_id, self::META_ON_SHELF, true );
-
-                    $ranges = wp_get_post_terms( $post_id, self::TAX );
+        
+                    $ranges      = wp_get_post_terms( $post_id, self::TAX );
                     $range_names = wp_list_pluck( $ranges, 'name' );
                     $range_str   = implode( '|', $range_names );
-
+        
                     fputcsv(
                         $output,
                         [
@@ -1154,9 +1201,10 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                         ]
                     );
                 }
+        
                 wp_reset_postdata();
             }
-
+        
             fclose( $output );
         }
 
@@ -1172,12 +1220,12 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             }
 
             // Title first
-            $new_columns['title'] = __( 'Title', 'pct' );
+            $new_columns['title'] = __( 'Title', 'paint-tracker-and-mixing-helper' );
 
             // Then our custom columns
-            $new_columns['pct_number']    = __( 'Number', 'pct' );
-            $new_columns['pct_hex']       = __( 'Hex', 'pct' );
-            $new_columns['pct_on_shelf']  = __( 'On Shelf?', 'pct' );
+            $new_columns['pct_number']    = __( 'Number', 'paint-tracker-and-mixing-helper' );
+            $new_columns['pct_hex']       = __( 'Hex', 'paint-tracker-and-mixing-helper' );
+            $new_columns['pct_on_shelf']  = __( 'On Shelf?', 'paint-tracker-and-mixing-helper' );
 
             // We intentionally DO NOT re-add 'date', so it disappears
 

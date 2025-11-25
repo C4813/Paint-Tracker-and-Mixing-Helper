@@ -15,7 +15,6 @@ if ( ! isset( $pct_ranges, $pct_paints ) || empty( $pct_ranges ) || empty( $pct_
 
 $default_shade_hex = isset( $pct_default_shade_hex ) ? $pct_default_shade_hex : '';
 $default_shade_id  = isset( $pct_default_shade_id ) ? (int) $pct_default_shade_id : 0;
-
 ?>
 
 <!-- ========== SHADE RANGE HELPER (SEPARATE TOOL) ========== -->
@@ -24,7 +23,7 @@ $default_shade_id  = isset( $pct_default_shade_id ) ? (int) $pct_default_shade_i
      data-default-shade-id="<?php echo esc_attr( $default_shade_id ); ?>">
     <div class="pct-shade-helper">
         <div class="pct-shade-header">
-            <?php esc_html_e( 'Shade helper', 'pct' ); ?>
+            <?php esc_html_e( 'Shade helper', 'paint-tracker-and-mixing-helper' ); ?>
         </div>
 
         <div class="pct-shade-controls">
@@ -32,11 +31,11 @@ $default_shade_id  = isset( $pct_default_shade_id ) ? (int) $pct_default_shade_i
                 <!-- Range dropdown -->
                 <div class="pct-mix-field">
                     <label>
-                        <?php esc_html_e( 'Range', 'pct' ); ?><br>
+                        <?php esc_html_e( 'Range', 'paint-tracker-and-mixing-helper' ); ?><br>
                         <div class="pct-mix-range-dropdown pct-mix-range-dropdown-shade">
                             <button type="button" class="pct-mix-trigger">
                                 <span class="pct-mix-trigger-label">
-                                    <?php esc_html_e( 'All', 'pct' ); ?>
+                                    <?php esc_html_e( 'All', 'paint-tracker-and-mixing-helper' ); ?>
                                 </span>
                                 <span class="pct-mix-trigger-caret">&#9662;</span>
                             </button>
@@ -44,7 +43,7 @@ $default_shade_id  = isset( $pct_default_shade_id ) ? (int) $pct_default_shade_i
                             <div class="pct-mix-list" hidden>
                                 <div class="pct-mix-range-option" data-range="">
                                     <span class="pct-mix-option-label">
-                                        <?php esc_html_e( 'All', 'pct' ); ?>
+                                        <?php esc_html_e( 'All', 'paint-tracker-and-mixing-helper' ); ?>
                                     </span>
                                 </div>
                                 <?php foreach ( $pct_ranges as $range ) : ?>
@@ -63,12 +62,12 @@ $default_shade_id  = isset( $pct_default_shade_id ) ? (int) $pct_default_shade_i
                 <!-- Paint dropdown -->
                 <div class="pct-mix-field">
                     <label>
-                        <?php esc_html_e( 'Paint', 'pct' ); ?><br>
+                        <?php esc_html_e( 'Paint', 'paint-tracker-and-mixing-helper' ); ?><br>
                         <div class="pct-mix-dropdown pct-mix-dropdown-shade">
                             <button type="button" class="pct-mix-trigger">
                                 <span class="pct-mix-trigger-swatch"></span>
                                 <span class="pct-mix-trigger-label">
-                                    <?php esc_html_e( 'Select a paint', 'pct' ); ?>
+                                    <?php esc_html_e( 'Select a paint', 'paint-tracker-and-mixing-helper' ); ?>
                                 </span>
                                 <span class="pct-mix-trigger-caret">&#9662;</span>
                             </button>
@@ -83,7 +82,7 @@ $default_shade_id  = isset( $pct_default_shade_id ) ? (int) $pct_default_shade_i
 
             <div class="pct-shade-scale" aria-live="polite">
                 <p class="pct-shade-empty">
-                    <?php esc_html_e( 'Select a paint to see lighter and darker mixes.', 'pct' ); ?>
+                    <?php esc_html_e( 'Select a paint to see lighter and darker mixes.', 'paint-tracker-and-mixing-helper' ); ?>
                 </p>
             </div>
         </div>

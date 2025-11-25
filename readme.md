@@ -140,7 +140,7 @@ Options:
 
 ## 📝 License
 
-This project is distributed under the MIT License.
+This project is distributed under the GNU General Public License version 2.
 
 ---
 

@@ -8,9 +8,14 @@ jQuery(function($) {
         }
         return fallback;
     }
+
+    // ---------- Global config from PHP ----------
+
+    // 'strict' or 'relaxed', as set in Info & Settings → Shade helper hue behaviour
+    var shadeHueMode = (window.pctShadeHelperL10n && window.pctShadeHelperL10n.hueMode) || 'strict';
     
     // ---------- Colour helpers (shared via pct-color-utils.js) ----------
-    
+
     var hexToRgb        = window.pctColorUtils.hexToRgb;
     var rgbToHex        = window.pctColorUtils.rgbToHex;
     var mixColors       = window.pctColorUtils.mixColors;
@@ -214,7 +219,7 @@ jQuery(function($) {
         return Math.min(d, 360 - d);
     }
 
-    // ---------- Shade range helper logic ----------
+    // ---------- Shade range helper logic (strict vs relaxed) ----------
 
     function updateShadeScale($container) {
         var $shadeHelper = $container.find('.pct-shade-helper');
@@ -258,7 +263,7 @@ jQuery(function($) {
         if (!$selectedOption.length) {
             // Fallback: match by hex
             $paintDropdown.find('.pct-mix-option').each(function () {
-                var $opt = $(this);
+                var $opt   = $(this);
                 var optHex = ($opt.data('hex') || '').toString().toLowerCase();
                 if (optHex === baseHex.toString().toLowerCase()) {
                     $selectedOption = $opt;
@@ -300,12 +305,9 @@ jQuery(function($) {
             }
         }
 
-        var darkest  = null;
-        var lightest = null;
-
         // Thresholds for "sane" anchors
-        var MAX_HUE_DIFF_DEG = 40;   // max hue difference for non-neutral colours
-        var SAT_NEUTRAL      = 0.05; // very low-sat colours = neutral
+        var MAX_HUE_DIFF_DEG = 40;   // max hue difference for same-hue-ish colours
+        var SAT_NEUTRAL      = 0.05; // very low-sat colours = neutral-ish
         var LUM_EPS          = 0.03; // minimum luminance difference to count as darker/lighter
 
         // Base is considered neutral if it's very low-sat or extremely bright/dark
@@ -314,7 +316,13 @@ jQuery(function($) {
             (baseLum < 0.25) ||
             (baseLum > 0.85);
 
-        // Collect paints and find darkest/lightest anchors
+        // Buckets for candidates
+        var darkerSameHue   = [];
+        var lighterSameHue  = [];
+        var darkerNeutral   = [];
+        var lighterNeutral  = [];
+
+        // Collect paints into buckets
         $paintDropdown.find('.pct-mix-option').each(function () {
             var $opt     = $(this);
             var optHex   = $opt.data('hex') || '';
@@ -361,42 +369,108 @@ jQuery(function($) {
             var isDarkerCandidate  = (lum < baseLum - LUM_EPS);
             var isLighterCandidate = (lum > baseLum + LUM_EPS);
 
-            // If base is neutral (e.g. white), only accept neutral-ish anchors
+            // If base is neutral (e.g. white/grey/black), only accept neutral-ish anchors
             if (baseIsNeutral && !isNeutralLike) {
                 return;
             }
 
+            var candidate = {
+                hex: optHex,
+                lum: lum,
+                label: label,
+                hueDiff: hueDiff,
+                isNeutral: isNeutralLike
+            };
+
+            // RELAXED and STRICT both fill the same buckets;
+            // we choose between them later when picking anchors.
             if (isDarkerCandidate) {
-                if (!darkest || lum < darkest.lum) {
-                    darkest = {
-                        hex: optHex,
-                        lum: lum,
-                        label: label,
-                        hueDiff: hueDiff,
-                        isNeutral: isNeutralLike
-                    };
+                if (isNeutralLike) {
+                    darkerNeutral.push(candidate);
+                } else if (hueDiff <= MAX_HUE_DIFF_DEG) {
+                    darkerSameHue.push(candidate);
                 }
             }
 
             if (isLighterCandidate) {
-                if (!lightest || lum > lightest.lum) {
-                    lightest = {
-                        hex: optHex,
-                        lum: lum,
-                        label: label,
-                        hueDiff: hueDiff,
-                        isNeutral: isNeutralLike
-                    };
+                if (isNeutralLike) {
+                    lighterNeutral.push(candidate);
+                } else if (hueDiff <= MAX_HUE_DIFF_DEG) {
+                    lighterSameHue.push(candidate);
                 }
             }
         });
 
-        // For non-neutral bases, reject anchors too far away in hue (unless they’re neutral-like)
-        if (darkest && !baseIsNeutral && !darkest.isNeutral && darkest.hueDiff > MAX_HUE_DIFF_DEG) {
-            darkest = null;
+        function pickDarkest(list) {
+            var best = null;
+            list.forEach(function (c) {
+                if (!best || c.lum < best.lum) {
+                    best = c;
+                }
+            });
+            return best;
         }
-        if (lightest && !baseIsNeutral && !lightest.isNeutral && lightest.hueDiff > MAX_HUE_DIFF_DEG) {
-            lightest = null;
+
+        function pickLightest(list) {
+            var best = null;
+            list.forEach(function (c) {
+                if (!best || c.lum > best.lum) {
+                    best = c;
+                }
+            });
+            return best;
+        }
+
+        var darkest  = null;
+        var lightest = null;
+
+        if (shadeHueMode === 'relaxed') {
+            // RELAXED MODE:
+            //  - Prefer same-hue anchors when available
+            //  - Fall back to neutral-ish paints (black/white/grey/tinted)
+            if (baseIsNeutral) {
+                // Neutral base: only neutral anchors make sense
+                if (darkerNeutral.length) {
+                    darkest = pickDarkest(darkerNeutral);
+                }
+                if (lighterNeutral.length) {
+                    lightest = pickLightest(lighterNeutral);
+                }
+            } else {
+                if (darkerSameHue.length) {
+                    darkest = pickDarkest(darkerSameHue);
+                } else if (darkerNeutral.length) {
+                    darkest = pickDarkest(darkerNeutral);
+                }
+
+                if (lighterSameHue.length) {
+                    lightest = pickLightest(lighterSameHue);
+                } else if (lighterNeutral.length) {
+                    lightest = pickLightest(lighterNeutral);
+                }
+            }
+        } else {
+            // STRICT MODE:
+            //  - Strong protection against big hue shifts
+            //  - Neutral-ish paints are always OK, same-hue allowed too
+            if (baseIsNeutral) {
+                if (darkerNeutral.length) {
+                    darkest = pickDarkest(darkerNeutral);
+                }
+                if (lighterNeutral.length) {
+                    lightest = pickLightest(lighterNeutral);
+                }
+            } else {
+                var allDarker = darkerSameHue.concat(darkerNeutral);
+                var allLighter = lighterSameHue.concat(lighterNeutral);
+
+                if (allDarker.length) {
+                    darkest = pickDarkest(allDarker);
+                }
+                if (allLighter.length) {
+                    lightest = pickLightest(allLighter);
+                }
+            }
         }
 
         var hasDarker  = !!darkest;
@@ -464,7 +538,16 @@ jQuery(function($) {
             });
         }
 
-        // Build info messages for missing sides
+        if (!rows.length) {
+            $scale.html(
+                '<p class="pct-shade-empty">' +
+                    pctL10n('unableToGenerate', 'Unable to generate mixes for this colour.') +
+                '</p>'
+            );
+            return;
+        }
+
+        // Build info messages for missing sides (consistent styling)
         var infoHtml = '';
         if (!hasDarker) {
             infoHtml += '<p class="pct-shade-empty">' +

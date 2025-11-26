@@ -128,7 +128,7 @@ elseif ( 'import_page' === $pct_admin_view ) : ?>
             <?php esc_html_e( 'Upload a CSV file to automatically create paints in a specific range.', 'paint-tracker-and-mixing-helper' ); ?>
         </p>
         <p>
-            <?php esc_html_e( 'Expected format (per row): name, number, hex colour, on shelf (yes/no, optional).', 'paint-tracker-and-mixing-helper' ); ?>
+            <?php esc_html_e( 'Expected format (per row): name, number, hex colour, on shelf (0/1, optional; 1 = yes, 0 = no).', 'paint-tracker-and-mixing-helper' ); ?>
         </p>
 
         <form method="post" enctype="multipart/form-data">

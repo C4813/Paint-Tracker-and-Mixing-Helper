@@ -104,5 +104,11 @@ jQuery(function($) {
     $(document).on('change', '#pct_mixing_page_url', function() {
         pctSubmitClosestForm($(this));
     });
+    
+    /**
+     * Quick Edit: hide password / private controls for Paint Colours.
+     */
+    $('.inline-edit-row input[name="post_password"]').closest('label').hide();
+    $('.inline-edit-row input[name="keep_private"]').closest('label').hide();
 
 });

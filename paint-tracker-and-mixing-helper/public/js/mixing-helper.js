@@ -1,5 +1,14 @@
 jQuery(function($) {
 
+    // ---------- L10n helper ----------
+
+    function pctMixL10n(key, fallback) {
+        if (window.pctMixingHelperL10n && typeof window.pctMixingHelperL10n[key] === 'string') {
+            return window.pctMixingHelperL10n[key];
+        }
+        return fallback;
+    }
+
     // ---------- Colour helpers ----------
 
     function hexToRgb(hex) {
@@ -100,7 +109,9 @@ jQuery(function($) {
         $dropdown.find('.pct-mix-value').val('');
         $dropdown.attr('data-hex', '');
         $list.find('.pct-mix-option').removeClass('is-selected');
-        $dropdown.find('.pct-mix-trigger-label').text('Select a paint');
+        $dropdown.find('.pct-mix-trigger-label').text(
+            pctMixL10n('selectPaint', 'Select a paint')
+        );
         $dropdown.find('.pct-mix-trigger-swatch').css('background-color', 'transparent');
     }
 

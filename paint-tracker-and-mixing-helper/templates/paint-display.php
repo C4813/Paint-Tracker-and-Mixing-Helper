@@ -31,10 +31,7 @@ if ( ! function_exists( 'pct_hex_to_rgb_for_table' ) ) {
         }
 
         $int = hexdec( $hex );
-        if ( ! is_int( $int ) ) {
-            return null;
-        }
-
+        
         return [
             'r' => ( $int >> 16 ) & 255,
             'g' => ( $int >> 8 ) & 255,

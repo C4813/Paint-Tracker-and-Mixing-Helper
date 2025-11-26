@@ -150,30 +150,6 @@
     }
 }
 
-
-/* ============================
-   Admin styles
-   ============================ */
-
-.pct-link-row {
-    margin-bottom: 8px;
-    padding: 6px 8px;
-    border: 1px solid #ccd0d4;
-    border-radius: 4px;
-    background: #f8f9fa;
-}
-
-.pct-link-row-field {
-    margin: 4px 0;
-}
-
-/* Quick/Bulk Edit: simplify for Paint Colours (hide date & password/private) */
-body.post-type-paint_color .inline-edit-date,
-body.post-type-paint_color .inline-edit-row .inline-edit-or,
-body.post-type-paint_color .inline-edit-row .inline-edit-password {
-    display: none !important;
-}
-
 /* ============================
    Mixing helper – main mixer
    ============================ */

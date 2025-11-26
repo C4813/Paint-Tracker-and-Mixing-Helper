@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes to display your miniature paint collection, as well as a mixing and shading helper for specific colours.
- * Version: 0.7.4
+ * Version: 0.7.5
  * Author: C4813
  * Text Domain: paint-tracker-and-mixing-helper
  * Domain Path: /languages
@@ -30,7 +30,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_LINK     = '_pct_link'; // legacy single link
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.7.4';
+        const VERSION = '0.7.5';
 
         public function __construct() {
             add_action( 'init',                    [ $this, 'register_types' ] );
@@ -487,10 +487,10 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 return;
             }
 
-            // Use main stylesheet (contains both frontend + admin rules)
+            // Admin-only stylesheet
             wp_enqueue_style(
                 'pct_paint_table_admin',
-                plugin_dir_url( __FILE__ ) . 'public/css/style.css',
+                plugin_dir_url( __FILE__ ) . 'admin/admin.css',
                 [],
                 self::VERSION
             );
@@ -522,18 +522,53 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         /**
          * Enqueue front-end stylesheet + helper JS.
          */
-        public function enqueue_frontend_assets() {
+        function enqueue_frontend_assets() {
+            // Only load assets on singular posts/pages that actually use our shortcodes.
+            if ( ! is_singular() ) {
+                return;
+            }
+        
+            global $post;
+        
+            if ( ! ( $post instanceof WP_Post ) ) {
+                return;
+            }
+        
+            if (
+                ! has_shortcode( $post->post_content, 'paint_table' ) &&
+                ! has_shortcode( $post->post_content, 'mixing-helper' ) &&
+                ! has_shortcode( $post->post_content, 'shade-helper' )
+            ) {
+                return;
+            }
+
             wp_enqueue_style(
                 'pct_paint_table',
                 plugin_dir_url( __FILE__ ) . 'public/css/style.css',
                 [],
                 self::VERSION
             );
+            
+            wp_enqueue_script(
+                'pct_paint_table_js',
+                plugin_dir_url( __FILE__ ) . 'public/js/paint-table.js',
+                [],
+                self::VERSION,
+                true
+            );
+
+            wp_enqueue_script(
+                'pct_color_utils',
+                plugin_dir_url( __FILE__ ) . 'public/js/pct-color-utils.js',
+                [],
+                self::VERSION,
+                true
+            );
 
             wp_enqueue_script(
                 'pct_mixing_helper',
                 plugin_dir_url( __FILE__ ) . 'public/js/mixing-helper.js',
-                [ 'jquery' ],
+                [ 'jquery', 'pct_color_utils' ],
                 self::VERSION,
                 true
             );
@@ -550,7 +585,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             wp_enqueue_script(
                 'pct_shade_helper',
                 plugin_dir_url( __FILE__ ) . 'public/js/shade-helper.js',
-                [ 'jquery' ],
+                [ 'jquery', 'pct_color_utils' ],
                 self::VERSION,
                 true
             );
@@ -1100,9 +1135,9 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                         $errors[] = $uploaded_file['error'];
                     } else {
                         $file_path = $uploaded_file['file'];
-
+                
                         $result = $this->import_csv_file( $file_path, $range_id );
-
+                
                         if ( is_wp_error( $result ) ) {
                             $errors[] = $result->get_error_message();
                         } else {
@@ -1111,6 +1146,11 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                                 __( 'Imported %d paints.', 'paint-tracker-and-mixing-helper' ),
                                 intval( $result )
                             );
+                        }
+                
+                        // Always delete the uploaded CSV file after processing.
+                        if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
+                            wp_delete_file( $file_path );
                         }
                     }
                 }

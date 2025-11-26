@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes to display your miniature paint collection, as well as a mixing and shading helper for specific colours.
- * Version: 0.7.6
+ * Version: 0.7.7
  * Author: C4813
  * Text Domain: paint-tracker-and-mixing-helper
  * Domain Path: /languages
@@ -30,7 +30,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_LINK     = '_pct_link'; // legacy single link
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.7.6';
+        const VERSION = '0.7.7';
 
         public function __construct() {
             add_action( 'init',                    [ $this, 'register_types' ] );
@@ -590,17 +590,22 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 true
             );
             
+            $shade_mode = get_option( 'pct_shade_hue_mode', 'strict' );
+            
             // Localise strings for shade-helper.js
             wp_localize_script(
                 'pct_shade_helper',
                 'pctShadeHelperL10n',
                 [
-                    'selectPaint'        => __( 'Select a paint to see lighter and darker mixes.', 'paint-tracker-and-mixing-helper' ),
-                    'invalidHex'         => __( 'This colour has an invalid hex value.', 'paint-tracker-and-mixing-helper' ),
-                    'noSelectedPaint'    => __( 'Could not determine the selected paint in this range.', 'paint-tracker-and-mixing-helper' ),
-                    'noRange'            => __( 'This paint is not assigned to a range.', 'paint-tracker-and-mixing-helper' ),
-                    'notEnoughPaints'    => __( 'Not enough paints in this range to build a shade ladder.', 'paint-tracker-and-mixing-helper' ),
-                    'unableToGenerate'   => __( 'Unable to generate mixes for this colour.', 'paint-tracker-and-mixing-helper' ),
+                    'selectPaint'      => __( 'Select a paint to see lighter and darker mixes.', 'paint-tracker-and-mixing-helper' ),
+                    'invalidHex'       => __( 'This colour has an invalid hex value.', 'paint-tracker-and-mixing-helper' ),
+                    'noSelectedPaint'  => __( 'Could not determine the selected paint in this range.', 'paint-tracker-and-mixing-helper' ),
+                    'noRange'          => __( 'This paint is not assigned to a range.', 'paint-tracker-and-mixing-helper' ),
+                    'notEnoughPaints'  => __( 'Not enough paints in this range to build a shade ladder.', 'paint-tracker-and-mixing-helper' ),
+                    'unableToGenerate' => __( 'Unable to generate mixes for this colour.', 'paint-tracker-and-mixing-helper' ),
+                    'noDarker'         => __( 'Not enough darker paints in this selection to generate darker mixes.', 'paint-tracker-and-mixing-helper' ),
+                    'noLighter'        => __( 'Not enough lighter paints in this selection to generate lighter mixes.', 'paint-tracker-and-mixing-helper' ),
+                    'hueMode'          => $shade_mode, // 'strict' or 'relaxed'
                 ]
             );
         }
@@ -1066,8 +1071,9 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $message = '';
 
             // Load existing values first
-            $info_url = get_option( 'pct_mixing_page_url', '' );
-            $mode     = get_option( 'pct_table_display_mode', 'dots' );
+            $info_url  = get_option( 'pct_mixing_page_url', '' );
+            $mode      = get_option( 'pct_table_display_mode', 'dots' );
+            $shade_mode = get_option( 'pct_shade_hue_mode', 'strict' ); // 'strict' or 'relaxed'
 
             // Save if the Info & Settings nonce is present and valid
             if (
@@ -1086,6 +1092,13 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     $mode     = in_array( $mode_raw, [ 'dots', 'rows' ], true ) ? $mode_raw : 'dots';
                     update_option( 'pct_table_display_mode', $mode );
                 }
+                
+                // Shade helper hue behaviour (strict vs relaxed)
+                if ( isset( $_POST['pct_shade_hue_mode'] ) ) {
+                    $shade_raw  = sanitize_text_field( wp_unslash( $_POST['pct_shade_hue_mode'] ) );
+                    $shade_mode = in_array( $shade_raw, [ 'strict', 'relaxed' ], true ) ? $shade_raw : 'strict';
+                    update_option( 'pct_shade_hue_mode', $shade_mode );
+                }
 
                 $message = __( 'Settings saved.', 'paint-tracker-and-mixing-helper' );
             }
@@ -1095,7 +1108,8 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $pct_info_message         = $message;
             $pct_info_url             = $info_url;
             $pct_table_display_mode   = $mode;
-
+            $pct_shade_hue_mode       = $shade_mode;
+            
             include plugin_dir_path( __FILE__ ) . 'admin/admin-page.php';
         }
 

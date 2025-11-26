@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes to display your miniature paint collection, as well as a mixing and shading helper for specific colours.
- * Version: 0.7.1
+ * Version: 0.7.2
  * Author: C4813
  * Text Domain: paint-tracker-and-mixing-helper
  * Domain Path: /languages
@@ -30,7 +30,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_LINK     = '_pct_link'; // legacy single link
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.7.1';
+        const VERSION = '0.7.2';
 
         public function __construct() {
             add_action( 'init',                    [ $this, 'register_types' ] );
@@ -422,9 +422,13 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 'pct_paint_table_admin',
                 'pctAdmin',
                 [
-                    'add_link_label'   => __( 'Add another link', 'paint-tracker-and-mixing-helper' ),
-                    'link_title_label' => __( 'Link Title', 'paint-tracker-and-mixing-helper' ),
-                    'link_url_label'   => __( 'Link URL', 'paint-tracker-and-mixing-helper' ),
+                    // For the meta box "linked posts / URLs" UI
+                    'addLinkLabel'   => __( 'Add another link', 'paint-tracker-and-mixing-helper' ),
+                    'linkTitleLabel' => __( 'Link title', 'paint-tracker-and-mixing-helper' ),
+                    'linkTitlePh'    => __( 'e.g. Tutorial, Review, Example Build', 'paint-tracker-and-mixing-helper' ),
+                    'linkUrlLabel'   => __( 'Link URL', 'paint-tracker-and-mixing-helper' ),
+                    'linkUrlPh'      => 'https://example.com/my-article',
+                    'removeLink'     => __( 'Remove link', 'paint-tracker-and-mixing-helper' ),
                 ]
             );
         }
@@ -1088,8 +1092,16 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
                 $title     = isset( $data[0] ) ? sanitize_text_field( $data[0] ) : '';
                 $number    = isset( $data[1] ) ? sanitize_text_field( $data[1] ) : '';
-                $hex       = isset( $data[2] ) ? sanitize_text_field( $data[2] ) : '';
-                $on_shelf  = isset( $data[3] ) ? intval( $data[3] ) : 0;
+                $hex      = isset( $data[2] ) ? sanitize_text_field( $data[2] ) : '';
+                $on_shelf = isset( $data[3] ) ? intval( $data[3] ) : 0;
+                
+                // Normalise hex: allow "2f353a" or "#2f353a" in CSV, but always store "#2f353a"
+                if ( $hex !== '' ) {
+                    $hex = ltrim( $hex, " \t\n\r\0\x0B" ); // trim whitespace
+                    if ( $hex[0] !== '#' ) {
+                        $hex = '#' . $hex;
+                    }
+                }
 
                 if ( '' === $title ) {
                     continue;

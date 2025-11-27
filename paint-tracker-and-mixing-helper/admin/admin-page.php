@@ -19,12 +19,33 @@ if ( 'meta_box' === $pct_admin_view ) : ?>
 
     <p>
         <label for="pct_number">
-            <strong><?php esc_html_e( 'Paint number', 'paint-tracker-and-mixing-helper' ); ?></strong>
-            (e.g. 70.800)
+            <strong><?php esc_html_e( 'Paint code / type', 'paint-tracker-and-mixing-helper' ); ?></strong>
+            (e.g. 70.800, A.MIG-023, Base)
         </label><br>
         <input type="text" id="pct_number" name="pct_number"
             value="<?php echo isset( $pct_number ) ? esc_attr( $pct_number ) : ''; ?>"
             class="regular-text">
+    </p>
+    
+    <p>
+        <label for="pct_base_type">
+            <strong><?php esc_html_e( 'Base type', 'paint-tracker-and-mixing-helper' ); ?></strong>
+            (<?php esc_html_e( 'required', 'paint-tracker-and-mixing-helper' ); ?>)
+        </label><br>
+        <select id="pct_base_type" name="pct_base_type" required>
+            <option value="">
+                <?php esc_html_e( 'Select base type…', 'paint-tracker-and-mixing-helper' ); ?>
+            </option>
+            <option value="acrylic" <?php selected( isset( $pct_base_type ) ? $pct_base_type : '', 'acrylic' ); ?>>
+                <?php esc_html_e( 'Acrylic', 'paint-tracker-and-mixing-helper' ); ?>
+            </option>
+            <option value="enamel" <?php selected( isset( $pct_base_type ) ? $pct_base_type : '', 'enamel' ); ?>>
+                <?php esc_html_e( 'Enamel', 'paint-tracker-and-mixing-helper' ); ?>
+            </option>
+            <option value="oil" <?php selected( isset( $pct_base_type ) ? $pct_base_type : '', 'oil' ); ?>>
+                <?php esc_html_e( 'Oil', 'paint-tracker-and-mixing-helper' ); ?>
+            </option>
+        </select>
     </p>
 
     <p>
@@ -128,7 +149,10 @@ elseif ( 'import_page' === $pct_admin_view ) : ?>
             <?php esc_html_e( 'Upload a CSV file to automatically create paints in a specific range.', 'paint-tracker-and-mixing-helper' ); ?>
         </p>
         <p>
-            <?php esc_html_e( 'Expected format (per row): name, number, hex colour, on shelf (0/1, optional; 1 = yes, 0 = no).', 'paint-tracker-and-mixing-helper' ); ?>
+            <?php esc_html_e(
+                'Expected format (per row): title, number, hex colour, base type (acrylic/enamel/oil), on shelf (0/1, optional; 1 = yes, 0 = no).',
+                'paint-tracker-and-mixing-helper'
+            ); ?>
         </p>
 
         <form method="post" enctype="multipart/form-data">

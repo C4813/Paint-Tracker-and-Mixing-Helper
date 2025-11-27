@@ -80,11 +80,30 @@ $default_shade_id  = isset( $pct_default_shade_id ) ? (int) $pct_default_shade_i
                 </div>
             </div>
 
-            <div class="pct-shade-scale" aria-live="polite">
-                <p class="pct-shade-empty">
-                    <?php esc_html_e( 'Select a paint to see lighter and darker mixes.', 'paint-tracker-and-mixing-helper' ); ?>
-                </p>
-            </div>
+            <div class="pct-shade-ladders">
+            
+                <div class="pct-shade-ladder pct-shade-ladder--strict">
+                    <div class="pct-shade-scale pct-shade-scale--strict"
+                        aria-live="polite"
+                        data-hue-mode="strict">
+                        <p class="pct-shade-empty">
+                            <?php esc_html_e( 'Select a paint to see lighter and darker mixes.', 'paint-tracker-and-mixing-helper' ); ?>
+                        </p>
+                    </div>
+                </div>
+            
+                <div class="pct-shade-ladder pct-shade-ladder--relaxed">
+                    <div class="pct-shade-scale pct-shade-scale--relaxed"
+                        aria-live="polite"
+                        data-hue-mode="relaxed">
+                        <p class="pct-shade-empty">
+                            <?php esc_html_e( 'Select a paint to see lighter and darker mixes.', 'paint-tracker-and-mixing-helper' ); ?>
+                        </p>
+                    </div>
+                </div>
+            
+            </div><!-- /.pct-shade-ladders -->
+
         </div>
     </div>
 </div><!-- /.pct-shade-container -->

@@ -411,42 +411,6 @@ elseif ( 'info_settings' === $pct_admin_view ) : ?>
             </table>
         </form>
         
-        <h4><?php esc_html_e( 'Shade helper hue behaviour', 'paint-tracker-and-mixing-helper' ); ?></h4>
-        <p>
-            <?php esc_html_e( 'The shade helper can be more strict about staying in the same colour family, or more flexible and allow broader mixes using neutral paints like black and white.', 'paint-tracker-and-mixing-helper' ); ?>
-        </p>
-
-        <form method="post">
-            <?php wp_nonce_field( 'pct_info_settings', 'pct_info_settings_nonce' ); ?>
-
-            <table class="form-table" role="presentation">
-                <tr>
-                    <th scope="row">
-                        <label><?php esc_html_e( 'Shade helper hue behaviour', 'paint-tracker-and-mixing-helper' ); ?></label>
-                    </th>
-                    <td>
-                        <fieldset>
-                            <label>
-                                <input type="radio"
-                                    name="pct_shade_hue_mode"
-                                    value="strict"
-                                    <?php checked( $hue_mode, 'strict' ); ?> />
-                                <?php esc_html_e( 'Strict hue protection (avoid big colour shifts, prefer neutral darkeners/lighteners)', 'paint-tracker-and-mixing-helper' ); ?>
-                            </label>
-                            <br>
-                            <label>
-                                <input type="radio"
-                                    name="pct_shade_hue_mode"
-                                    value="relaxed"
-                                    <?php checked( $hue_mode, 'relaxed' ); ?> />
-                                <?php esc_html_e( 'More flexible mixing (prefer similar hues first, then fall back to neutrals)', 'paint-tracker-and-mixing-helper' ); ?>
-                            </label>
-                        </fieldset>
-                    </td>
-                </tr>
-            </table>
-        </form>
-        
         <hr>
 
         <h2><?php esc_html_e( 'Importing paints from CSV', 'paint-tracker-and-mixing-helper' ); ?></h2>

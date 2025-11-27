@@ -293,8 +293,8 @@
 .pct-shade-scale {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    margin-top: 6px;
+    gap: 4px;
+    margin-top: 4px;
 }
 
 .pct-shade-scale > *:first-child {
@@ -311,8 +311,18 @@
     background: #ffffff;
 }
 
+/* base row gets a slightly heavier border */
 .pct-shade-row-base {
     border-width: 2px;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+/* text sizing inside rows – match dropdown text (bumped to 15px) */
+.pct-shade-row-main,
+.pct-shade-row-hex {
+    font-size: 15px;
+    line-height: 1.3;
 }
 
 .pct-shade-ratio {
@@ -325,6 +335,7 @@
     opacity: 0.9;
 }
 
+/* empty-message styling */
 .pct-shade-empty {
     font-size: 13px;
     text-align: center;
@@ -332,10 +343,88 @@
     margin: 4px 0 0;
 }
 
+/* Make a single empty-message span both ladders */
+.pct-shade-ladder--strict .pct-shade-empty {
+    position: relative;
+    width: calc(200% + 12px); /* same width hack as base/merged rows */
+}
+
+.pct-shade-ladder--relaxed .pct-shade-empty {
+    visibility: hidden; /* preserves vertical spacing, hides duplicate */
+}
+
 .pct-mix-result-block.pct-shade-row {
     display: none;
 }
 
+/* Shade helper: two ladders side by side */
+.pct-shade-ladders {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;        /* gap between ladders */
+    overflow: visible;
+}
+
+.pct-shade-ladder {
+    flex: 1 1 0;
+    min-width: 220px;
+    position: relative;
+}
+
+/* Hide the duplicate base row in the relaxed ladder but keep its space */
+.pct-shade-ladder--relaxed .pct-shade-row-base {
+    visibility: hidden;   /* NOT display:none, so the gap lines up */
+}
+
+/* Make the strict ladder's base row span both columns.
+   200% of the first column + the 12px gap ~= full width of both ladders. */
+.pct-shade-ladder--strict .pct-shade-row-base {
+    position: relative;
+    width: calc(200% + 12px);
+}
+
+/* Rows that are identical in both ladders (e.g. same lightener/darkener) */
+.pct-shade-ladder--strict .pct-shade-row-merged {
+    position: relative;
+    width: calc(200% + 12px); /* span both columns */
+}
+
+/* On the relaxed side keep the vertical space but hide the duplicate */
+.pct-shade-ladder--relaxed .pct-shade-row-merged {
+    visibility: hidden;
+}
+
+/* Each name/parts line inside a shade row */
+.pct-shade-line {
+    line-height: 1.35;   /* more breathing room */
+    margin-bottom: 2px;  /* adds subtle separation */
+}
+
+/* Arrow rows above/below the primary colour */
+.pct-shade-row-arrow {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
+
+.pct-shade-row-arrow .pct-shade-row-main {
+    font-size: 18px;      /* slightly larger arrow */
+    line-height: 1;
+    text-align: center;
+}
+
+.pct-shade-row-arrow .pct-shade-row-hex {
+    display: none;        /* no hex line for arrows */
+}
+
+.pct-shade-arrow-icon {
+    display: inline-block;
+    color: #000000;       /* black arrows */
+}
 
 /* ============================
    Dropdown internals

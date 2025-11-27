@@ -86,7 +86,7 @@ $container_class_attr = implode( ' ', array_map( 'sanitize_html_class', $contain
                         <th class="pct-swatch-header" aria-hidden="true"></th>
                     <?php endif; ?>
                     <th><?php esc_html_e( 'Colour', 'paint-tracker-and-mixing-helper' ); ?></th>
-                    <th><?php esc_html_e( 'Number', 'paint-tracker-and-mixing-helper' ); ?></th>
+                    <th><?php esc_html_e( 'Code / Type', 'paint-tracker-and-mixing-helper' ); ?></th>
                     <th class="pct-models-header"><?php esc_html_e( 'Models', 'paint-tracker-and-mixing-helper' ); ?></th>
                 </tr>
             </thead>

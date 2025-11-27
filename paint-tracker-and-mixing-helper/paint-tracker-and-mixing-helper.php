@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes to display your miniature paint collection, as well as a mixing and shading helper for specific colours.
- * Version: 0.8.0
+ * Version: 0.8.1
  * Author: C4813
  * Text Domain: paint-tracker-and-mixing-helper
  * Domain Path: /languages
@@ -23,14 +23,15 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const TAX = 'paint_range';
 
         // Meta keys
-        const META_NUMBER   = '_pct_number';
-        const META_HEX      = '_pct_hex';
-        const META_ON_SHELF = '_pct_on_shelf';
-        const META_LINKS    = '_pct_links';
-        const META_LINK     = '_pct_link'; // legacy single link
+        const META_NUMBER    = '_pct_number';
+        const META_HEX       = '_pct_hex';
+        const META_ON_SHELF  = '_pct_on_shelf';
+        const META_LINKS     = '_pct_links';
+        const META_LINK      = '_pct_link'; // legacy single link
+        const META_BASE_TYPE = '_pct_base_type';
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.8.0';
+        const VERSION = '0.8.1';
 
         public function __construct() {
             add_action( 'init',                    [ $this, 'register_types' ] );
@@ -142,10 +143,11 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
          * Render the meta box HTML (delegated to admin/admin-page.php).
          */
         public function render_paint_meta_box( $post ) {
-            $number   = get_post_meta( $post->ID, self::META_NUMBER, true );
-            $hex      = get_post_meta( $post->ID, self::META_HEX, true );
-            $on_shelf = get_post_meta( $post->ID, self::META_ON_SHELF, true );
-            $links    = get_post_meta( $post->ID, self::META_LINKS, true );
+                    $number    = get_post_meta( $post->ID, self::META_NUMBER, true );
+                    $hex       = get_post_meta( $post->ID, self::META_HEX, true );
+                    $on_shelf  = get_post_meta( $post->ID, self::META_ON_SHELF, true );
+                    $links     = get_post_meta( $post->ID, self::META_LINKS, true );
+                    $base_type = get_post_meta( $post->ID, self::META_BASE_TYPE, true );
 
             if ( ! is_array( $links ) ) {
                 $links = [];
@@ -169,8 +171,10 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $pct_hex        = $hex;
             $pct_on_shelf   = $on_shelf;
             $pct_links      = $links;
+            $pct_base_type  = $base_type;
 
             include plugin_dir_path( __FILE__ ) . 'admin/admin-page.php';
+
         }
 
          /**
@@ -213,19 +217,31 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             }
         
             // ----- Normal edit screen save below -----
-        
-            // Save number
+            
+            // Save number (code / type)
             $number = isset( $_POST['pct_number'] )
                 ? sanitize_text_field( wp_unslash( $_POST['pct_number'] ) )
                 : '';
             update_post_meta( $post_id, self::META_NUMBER, $number );
-        
+            
+            // Save base type (required in UI, but guard + normalise here)
+            $base_type = isset( $_POST['pct_base_type'] )
+                ? sanitize_text_field( wp_unslash( $_POST['pct_base_type'] ) )
+                : '';
+            
+            $allowed_base_types = [ 'acrylic', 'enamel', 'oil' ];
+            if ( ! in_array( $base_type, $allowed_base_types, true ) ) {
+                // Fallback default; you can change this if you prefer.
+                $base_type = 'acrylic';
+            }
+            update_post_meta( $post_id, self::META_BASE_TYPE, $base_type );
+            
             // Save hex
             $hex = isset( $_POST['pct_hex'] )
                 ? sanitize_text_field( wp_unslash( $_POST['pct_hex'] ) )
                 : '';
             update_post_meta( $post_id, self::META_HEX, $hex );
-        
+            
             // Save on-shelf flag
             $on_shelf = isset( $_POST['pct_on_shelf'] ) ? 1 : 0;
             update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
@@ -274,35 +290,46 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
          * Output Quick Edit fields.
          */
         public function quick_edit_fields( $column_name, $post_type ) {
-            if ( self::CPT !== $post_type || 'pct_number' !== $column_name ) {
-                return;
-            }
-            ?>
-            <fieldset class="inline-edit-col-left">
-                <div class="inline-edit-col">
-                    <label>
-                        <span class="title"><?php esc_html_e( 'Number', 'paint-tracker-and-mixing-helper' ); ?></span>
-                        <span class="input-text-wrap">
-                            <input type="text" name="pct_number" class="ptitle" value="">
-                        </span>
-                    </label>
-                    <label>
-                        <span class="title"><?php esc_html_e( 'Hex', 'paint-tracker-and-mixing-helper' ); ?></span>
-                        <span class="input-text-wrap">
-                            <input type="text" name="pct_hex" class="ptitle" value="">
-                        </span>
-                    </label>
-                    <label>
-                        <span class="title"><?php esc_html_e( 'On Shelf?', 'paint-tracker-and-mixing-helper' ); ?></span>
-                        <span class="input-text-wrap">
-                            <input type="checkbox" name="pct_on_shelf" value="1">
-                        </span>
-                    </label>
-                </div>
-            </fieldset>
-            <?php
-            wp_nonce_field( 'pct_quick_edit', 'pct_quick_edit_nonce' );
-        }
+                    if ( self::CPT !== $post_type || 'pct_number' !== $column_name ) {
+                        return;
+                    }
+                    ?>
+                    <fieldset class="inline-edit-col-left">
+                        <div class="inline-edit-col">
+                            <label>
+                                <span class="title"><?php esc_html_e( 'Code / Type', 'paint-tracker-and-mixing-helper' ); ?></span>
+                                <span class="input-text-wrap">
+                                    <input type="text" name="pct_number" class="ptitle" value="">
+                                </span>
+                            </label>
+                            <label>
+                                <span class="title"><?php esc_html_e( 'Hex', 'paint-tracker-and-mixing-helper' ); ?></span>
+                                <span class="input-text-wrap">
+                                    <input type="text" name="pct_hex" class="ptitle" value="">
+                                </span>
+                            </label>
+                            <label>
+                                <span class="title"><?php esc_html_e( 'On Shelf?', 'paint-tracker-and-mixing-helper' ); ?></span>
+                                <span class="input-text-wrap">
+                                    <input type="checkbox" name="pct_on_shelf" value="1">
+                                </span>
+                            </label>
+                            <label>
+                                <span class="title"><?php esc_html_e( 'Base type', 'paint-tracker-and-mixing-helper' ); ?></span>
+                                <span class="input-text-wrap">
+                                    <select name="pct_base_type">
+                                        <option value=""><?php esc_html_e( '— No change —', 'paint-tracker-and-mixing-helper' ); ?></option>
+                                        <option value="acrylic"><?php esc_html_e( 'Acrylic', 'paint-tracker-and-mixing-helper' ); ?></option>
+                                        <option value="enamel"><?php esc_html_e( 'Enamel', 'paint-tracker-and-mixing-helper' ); ?></option>
+                                        <option value="oil"><?php esc_html_e( 'Oil', 'paint-tracker-and-mixing-helper' ); ?></option>
+                                    </select>
+                                </span>
+                            </label>
+                        </div>
+                    </fieldset>
+                    <?php
+                    wp_nonce_field( 'pct_quick_edit', 'pct_quick_edit_nonce' );
+                }
         
         /**
          * Output Bulk Edit field for On Shelf.
@@ -316,11 +343,27 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 <div class="inline-edit-group">
                     <label class="alignleft">
                         <span class="title"><?php esc_html_e( 'On Shelf?', 'paint-tracker-and-mixing-helper' ); ?></span>
-                        <select name="pct_bulk_on_shelf">
-                            <option value=""><?php esc_html_e( '— No Change —', 'paint-tracker-and-mixing-helper' ); ?></option>
-                            <option value="1"><?php esc_html_e( 'On shelf', 'paint-tracker-and-mixing-helper' ); ?></option>
-                            <option value="0"><?php esc_html_e( 'Not on shelf', 'paint-tracker-and-mixing-helper' ); ?></option>
-                        </select>
+                        <span class="input-text-wrap">
+                            <select name="pct_bulk_on_shelf">
+                                <option value=""><?php esc_html_e( '— No change —', 'paint-tracker-and-mixing-helper' ); ?></option>
+                                <option value="1"><?php esc_html_e( 'On shelf', 'paint-tracker-and-mixing-helper' ); ?></option>
+                                <option value="0"><?php esc_html_e( 'Not on shelf', 'paint-tracker-and-mixing-helper' ); ?></option>
+                            </select>
+                        </span>
+                    </label>
+                </div>
+
+                <div class="inline-edit-group">
+                    <label class="alignleft">
+                        <span class="title"><?php esc_html_e( 'Base type', 'paint-tracker-and-mixing-helper' ); ?></span>
+                        <span class="input-text-wrap">
+                            <select name="pct_bulk_base_type">
+                                <option value=""><?php esc_html_e( '— No change —', 'paint-tracker-and-mixing-helper' ); ?></option>
+                                <option value="acrylic"><?php esc_html_e( 'Set to Acrylic', 'paint-tracker-and-mixing-helper' ); ?></option>
+                                <option value="enamel"><?php esc_html_e( 'Set to Enamel', 'paint-tracker-and-mixing-helper' ); ?></option>
+                                <option value="oil"><?php esc_html_e( 'Set to Oil', 'paint-tracker-and-mixing-helper' ); ?></option>
+                            </select>
+                        </span>
                     </label>
                 </div>
             </fieldset>
@@ -328,111 +371,143 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             wp_nonce_field( 'pct_bulk_edit', 'pct_bulk_edit_nonce' );
         }
 
+
         /**
          * Handle bulk "On Shelf?" updates from the list table bulk edit UI.
          */
         public function handle_bulk_on_shelf_update() {
-            if ( ! is_admin() ) {
-                return;
-            }
+                    if ( ! is_admin() ) {
+                        return;
+                    }
         
-            // Only run on our CPT list screen
-            $post_type = isset( $_REQUEST['post_type'] ) ? sanitize_key( $_REQUEST['post_type'] ) : '';
-            if ( self::CPT !== $post_type ) {
-                return;
-            }
+                    // Only run on our CPT list screen
+                    $post_type = isset( $_REQUEST['post_type'] ) ? sanitize_key( $_REQUEST['post_type'] ) : '';
+                    if ( self::CPT !== $post_type ) {
+                        return;
+                    }
         
-            // Only when the bulk edit form was used
-            if ( ! isset( $_REQUEST['bulk_edit'] ) ) {
-                return;
-            }
+                    // Only when the bulk edit form was used
+                    if ( ! isset( $_REQUEST['bulk_edit'] ) ) {
+                        return;
+                    }
         
-            // Our bulk field must be present
-            if ( ! isset( $_REQUEST['pct_bulk_on_shelf'] ) ) {
-                return;
-            }
+                    // At least one of our bulk fields must be present
+                    $has_on_shelf  = isset( $_REQUEST['pct_bulk_on_shelf'] );
+                    $has_base_type = isset( $_REQUEST['pct_bulk_base_type'] );
         
-            // Check nonce from bulk_edit_fields()
-            if (
-                ! isset( $_REQUEST['pct_bulk_edit_nonce'] ) ||
-                ! wp_verify_nonce( $_REQUEST['pct_bulk_edit_nonce'], 'pct_bulk_edit' )
-            ) {
-                return;
-            }
+                    if ( ! $has_on_shelf && ! $has_base_type ) {
+                        return;
+                    }
         
-            // Posts selected
-            if ( empty( $_REQUEST['post'] ) || ! is_array( $_REQUEST['post'] ) ) {
-                return;
-            }
+                    // Check nonce from bulk_edit_fields()
+                    if (
+                        ! isset( $_REQUEST['pct_bulk_edit_nonce'] ) ||
+                        ! wp_verify_nonce( $_REQUEST['pct_bulk_edit_nonce'], 'pct_bulk_edit' )
+                    ) {
+                        return;
+                    }
         
-            if ( ! current_user_can( 'edit_posts' ) ) {
-                return;
-            }
+                    // Posts selected
+                    if ( empty( $_REQUEST['post'] ) || ! is_array( $_REQUEST['post'] ) ) {
+                        return;
+                    }
         
-            $bulk_value = (string) wp_unslash( $_REQUEST['pct_bulk_on_shelf'] );
+                    if ( ! current_user_can( 'edit_posts' ) ) {
+                        return;
+                    }
         
-            // User selected "— No Change —"
-            if ( '' === $bulk_value ) {
-                return;
-            }
+                    $bulk_on_shelf_val = $has_on_shelf ? (string) wp_unslash( $_REQUEST['pct_bulk_on_shelf'] ) : '';
+                    $bulk_base_type    = $has_base_type ? sanitize_text_field( wp_unslash( $_REQUEST['pct_bulk_base_type'] ) ) : '';
         
-            $on_shelf = ( '1' === $bulk_value ) ? 1 : 0;
+                    $do_on_shelf  = ( '' !== $bulk_on_shelf_val );
+                    $do_base_type = ( '' !== $bulk_base_type );
         
-            $post_ids = array_map( 'absint', (array) $_REQUEST['post'] );
+                    if ( ! $do_on_shelf && ! $do_base_type ) {
+                        return;
+                    }
         
-            foreach ( $post_ids as $post_id ) {
-                if ( ! $post_id ) {
-                    continue;
+                    if ( $do_base_type ) {
+                        $allowed_base_types = [ 'acrylic', 'enamel', 'oil' ];
+                        if ( ! in_array( $bulk_base_type, $allowed_base_types, true ) ) {
+                            $do_base_type = false;
+                        }
+                    }
+        
+                    $on_shelf = null;
+                    if ( $do_on_shelf ) {
+                        $on_shelf = ( '1' === $bulk_on_shelf_val ) ? 1 : 0;
+                    }
+        
+                    $post_ids = array_map( 'absint', (array) $_REQUEST['post'] );
+        
+                    foreach ( $post_ids as $post_id ) {
+                        if ( ! $post_id ) {
+                            continue;
+                        }
+        
+                        if ( get_post_type( $post_id ) !== self::CPT ) {
+                            continue;
+                        }
+        
+                        if ( ! current_user_can( 'edit_post', $post_id ) ) {
+                            continue;
+                        }
+        
+                        if ( $do_on_shelf ) {
+                            update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
+                        }
+        
+                        if ( $do_base_type ) {
+                            update_post_meta( $post_id, self::META_BASE_TYPE, $bulk_base_type );
+                        }
+                    }
                 }
-        
-                if ( get_post_type( $post_id ) !== self::CPT ) {
-                    continue;
-                }
-        
-                if ( ! current_user_can( 'edit_post', $post_id ) ) {
-                    continue;
-                }
-        
-                update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
-            }
-        }
 
         /**
          * Save Quick Edit values.
          */
         public function save_quick_edit( $post_id, $post ) {
-            if ( ! isset( $_POST['pct_quick_edit_nonce'] ) || ! wp_verify_nonce( $_POST['pct_quick_edit_nonce'], 'pct_quick_edit' ) ) {
-                return;
-            }
-
-            if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
-                return;
-            }
-
-            if ( self::CPT !== $post->post_type ) {
-                return;
-            }
-
-            if ( ! current_user_can( 'edit_post', $post_id ) ) {
-                return;
-            }
-
-            // Save number
-            if ( isset( $_POST['pct_number'] ) ) {
-                $number = sanitize_text_field( wp_unslash( $_POST['pct_number'] ) );
-                update_post_meta( $post_id, self::META_NUMBER, $number );
-            }
-
-            // Save hex
-            if ( isset( $_POST['pct_hex'] ) ) {
-                $hex = sanitize_text_field( wp_unslash( $_POST['pct_hex'] ) );
-                update_post_meta( $post_id, self::META_HEX, $hex );
-            }
-
-            // Save on shelf
-            $on_shelf = isset( $_POST['pct_on_shelf'] ) ? 1 : 0;
-            update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
-        }
+                    if ( ! isset( $_POST['pct_quick_edit_nonce'] ) || ! wp_verify_nonce( $_POST['pct_quick_edit_nonce'], 'pct_quick_edit' ) ) {
+                        return;
+                    }
+        
+                    if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+                        return;
+                    }
+        
+                    if ( self::CPT !== $post->post_type ) {
+                        return;
+                    }
+        
+                    if ( ! current_user_can( 'edit_post', $post_id ) ) {
+                        return;
+                    }
+        
+                    // Save number
+                    if ( isset( $_POST['pct_number'] ) ) {
+                        $number = sanitize_text_field( wp_unslash( $_POST['pct_number'] ) );
+                        update_post_meta( $post_id, self::META_NUMBER, $number );
+                    }
+        
+                    // Save hex
+                    if ( isset( $_POST['pct_hex'] ) ) {
+                        $hex = sanitize_text_field( wp_unslash( $_POST['pct_hex'] ) );
+                        update_post_meta( $post_id, self::META_HEX, $hex );
+                    }
+        
+                    // Save base type (only if user picked something)
+                    if ( isset( $_POST['pct_base_type'] ) && '' !== $_POST['pct_base_type'] ) {
+                        $base_type = sanitize_text_field( wp_unslash( $_POST['pct_base_type'] ) );
+                        $allowed_base_types = [ 'acrylic', 'enamel', 'oil' ];
+                        if ( in_array( $base_type, $allowed_base_types, true ) ) {
+                            update_post_meta( $post_id, self::META_BASE_TYPE, $base_type );
+                        }
+                    }
+        
+                    // Save on shelf
+                    $on_shelf = isset( $_POST['pct_on_shelf'] ) ? 1 : 0;
+                    update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
+                }
 
         /**
          * Print Quick Edit JS to populate fields from the row.
@@ -766,10 +841,11 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 $q->the_post();
                 $post_id = get_the_ID();
 
-                $name   = get_the_title();
-                $number = get_post_meta( $post_id, self::META_NUMBER, true );
-                $hex    = get_post_meta( $post_id, self::META_HEX, true );
-
+                $name      = get_the_title();
+                $number    = get_post_meta( $post_id, self::META_NUMBER, true );
+                $hex       = get_post_meta( $post_id, self::META_HEX, true );
+                $base_type = get_post_meta( $post_id, self::META_BASE_TYPE, true );
+                
                 // Take the first range term for this paint (if multiple, first is fine)
                 $term_ids = wp_get_object_terms(
                     $post_id,
@@ -778,15 +854,16 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                         'fields' => 'ids',
                     ]
                 );
-
+                
                 $range_id = ! empty( $term_ids ) ? (int) $term_ids[0] : 0;
-
+                
                 $paints[] = [
-                    'id'       => $post_id,
-                    'name'     => $name,
-                    'number'   => $number,
-                    'hex'      => $hex,
-                    'range_id' => $range_id,
+                    'id'        => $post_id,
+                    'name'      => $name,
+                    'number'    => $number,
+                    'hex'       => $hex,
+                    'base_type' => $base_type,
+                    'range_id'  => $range_id,
                 ];
             }
 
@@ -881,11 +958,11 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 $q->the_post();
                 $post_id = get_the_ID();
 
-                $name   = get_the_title();
-                $number = get_post_meta( $post_id, self::META_NUMBER, true );
-                $hex    = get_post_meta( $post_id, self::META_HEX, true );
-
-                // Take the first range term for this paint (if multiple, first is fine)
+                $name      = get_the_title();
+                $number    = get_post_meta( $post_id, self::META_NUMBER, true );
+                $hex       = get_post_meta( $post_id, self::META_HEX, true );
+                $base_type = get_post_meta( $post_id, self::META_BASE_TYPE, true );
+                
                 $term_ids = wp_get_object_terms(
                     $post_id,
                     self::TAX,
@@ -893,15 +970,16 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                         'fields' => 'ids',
                     ]
                 );
-
+                
                 $range_id = ! empty( $term_ids ) ? (int) $term_ids[0] : 0;
-
+                
                 $paints[] = [
-                    'id'       => $post_id,
-                    'name'     => $name,
-                    'number'   => $number,
-                    'hex'      => $hex,
-                    'range_id' => $range_id,
+                    'id'        => $post_id,
+                    'name'      => $name,
+                    'number'    => $number,
+                    'hex'       => $hex,
+                    'base_type' => $base_type,
+                    'range_id'  => $range_id,
                 ];
             }
 
@@ -971,12 +1049,13 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
          */
         public static function render_mix_paint_options( $paints ) {
             foreach ( $paints as $paint ) {
-                $id       = isset( $paint['id'] ) ? (int) $paint['id'] : 0;
-                $name     = isset( $paint['name'] ) ? $paint['name'] : '';
-                $number   = isset( $paint['number'] ) ? $paint['number'] : '';
-                $hex      = isset( $paint['hex'] ) ? $paint['hex'] : '';
-                $range_id = isset( $paint['range_id'] ) ? (int) $paint['range_id'] : 0;
-
+                $id        = isset( $paint['id'] ) ? (int) $paint['id'] : 0;
+                $name      = isset( $paint['name'] ) ? $paint['name'] : '';
+                $number    = isset( $paint['number'] ) ? $paint['number'] : '';
+                $hex       = isset( $paint['hex'] ) ? $paint['hex'] : '';
+                $range_id  = isset( $paint['range_id'] ) ? (int) $paint['range_id'] : 0;
+                $base_type = isset( $paint['base_type'] ) ? $paint['base_type'] : '';
+            
                 if ( '' === $name || '' === $hex || ! $range_id ) {
                     continue;
                 }
@@ -1004,11 +1083,12 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 );
                 ?>
                 <div class="pct-mix-option"
-                    data-hex="<?php echo esc_attr( $hex ); ?>"
-                    data-label="<?php echo esc_attr( $label ); ?>"
-                    data-range="<?php echo esc_attr( $range_id ); ?>"
-                    data-id="<?php echo esc_attr( $id ); ?>"
-                    style="<?php echo $style; ?>">
+                        data-hex="<?php echo esc_attr( $hex ); ?>"
+                        data-label="<?php echo esc_attr( $label ); ?>"
+                        data-range="<?php echo esc_attr( $range_id ); ?>"
+                        data-id="<?php echo esc_attr( $id ); ?>"
+                        data-base-type="<?php echo esc_attr( $base_type ); ?>"
+                        style="<?php echo $style; ?>">
                     <span class="pct-mix-option-swatch"></span>
                     <span class="pct-mix-option-label"><?php echo esc_html( $label ); ?></span>
                 </div>
@@ -1219,7 +1299,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         /**
          * Import paints from a CSV file into a specific range.
          *
-         * Expected columns: title, number, hex, on_shelf (0/1)
+         * Expected columns: title, number, hex, base_type, on_shelf (0/1)
          */
         private function import_csv_file( $file_path, $range_id ) {
             if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
@@ -1255,8 +1335,9 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
                 $title     = isset( $data[0] ) ? sanitize_text_field( $data[0] ) : '';
                 $number    = isset( $data[1] ) ? sanitize_text_field( $data[1] ) : '';
-                $hex      = isset( $data[2] ) ? sanitize_text_field( $data[2] ) : '';
-                $on_shelf = isset( $data[3] ) ? intval( $data[3] ) : 0;
+                $hex       = isset( $data[2] ) ? sanitize_text_field( $data[2] ) : '';
+                $base_type = isset( $data[3] ) ? sanitize_text_field( $data[3] ) : '';
+                $on_shelf  = isset( $data[4] ) ? intval( $data[4] ) : 0;
                 
                 // Normalise hex: allow "2f353a" or "#2f353a" in CSV, but always store "#2f353a"
                 if ( $hex !== '' ) {
@@ -1264,6 +1345,13 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     if ( $hex[0] !== '#' ) {
                         $hex = '#' . $hex;
                     }
+                }
+                
+                // Normalise base type
+                $base_type = strtolower( trim( $base_type ) );
+                $allowed_base_types = [ 'acrylic', 'enamel', 'oil' ];
+                if ( ! in_array( $base_type, $allowed_base_types, true ) ) {
+                    $base_type = 'acrylic'; // default if invalid/missing
                 }
 
                 if ( '' === $title ) {
@@ -1284,6 +1372,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
                 update_post_meta( $post_id, self::META_NUMBER, $number );
                 update_post_meta( $post_id, self::META_HEX, $hex );
+                update_post_meta( $post_id, self::META_BASE_TYPE, $base_type );
                 update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
 
                 // Assign to range
@@ -1316,7 +1405,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $output = fopen( 'php://output', 'w' );
         
             // Header row
-            fputcsv( $output, [ 'title', 'number', 'hex', 'on_shelf', 'ranges' ] );
+            fputcsv( $output, [ 'title', 'number', 'hex', 'base_type', 'on_shelf', 'ranges' ] );
         
             // Base query
             $args = [
@@ -1358,21 +1447,23 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     $query->the_post();
                     $post_id = get_the_ID();
         
-                    $title    = get_the_title();
-                    $number   = get_post_meta( $post_id, self::META_NUMBER, true );
-                    $hex      = get_post_meta( $post_id, self::META_HEX, true );
-                    $on_shelf = get_post_meta( $post_id, self::META_ON_SHELF, true );
-        
+                    $title     = get_the_title();
+                    $number    = get_post_meta( $post_id, self::META_NUMBER, true );
+                    $hex       = get_post_meta( $post_id, self::META_HEX, true );
+                    $base_type = get_post_meta( $post_id, self::META_BASE_TYPE, true );
+                    $on_shelf  = get_post_meta( $post_id, self::META_ON_SHELF, true );
+                    
                     $ranges      = wp_get_post_terms( $post_id, self::TAX );
                     $range_names = wp_list_pluck( $ranges, 'name' );
                     $range_str   = implode( '|', $range_names );
-        
+                    
                     fputcsv(
                         $output,
                         [
                             $title,
                             $number,
                             $hex,
+                            $base_type,
                             $on_shelf,
                             $range_str,
                         ]
@@ -1400,9 +1491,10 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $new_columns['title'] = __( 'Title', 'paint-tracker-and-mixing-helper' );
 
             // Then our custom columns
-            $new_columns['pct_number']    = __( 'Number', 'paint-tracker-and-mixing-helper' );
-            $new_columns['pct_hex']       = __( 'Hex', 'paint-tracker-and-mixing-helper' );
-            $new_columns['pct_on_shelf']  = __( 'On Shelf?', 'paint-tracker-and-mixing-helper' );
+            $new_columns['pct_number']     = __( 'Code / Type', 'paint-tracker-and-mixing-helper' );
+            $new_columns['pct_hex']        = __( 'Hex', 'paint-tracker-and-mixing-helper' );
+            $new_columns['pct_base_type']  = __( 'Base type', 'paint-tracker-and-mixing-helper' );
+            $new_columns['pct_on_shelf']   = __( 'On Shelf?', 'paint-tracker-and-mixing-helper' );
 
             // We intentionally DO NOT re-add 'date', so it disappears
 
@@ -1419,6 +1511,15 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             } elseif ( 'pct_hex' === $column ) {
                 $hex = get_post_meta( $post_id, self::META_HEX, true );
                 echo esc_html( $hex );
+            } elseif ( 'pct_base_type' === $column ) {
+                $base_type = get_post_meta( $post_id, self::META_BASE_TYPE, true );
+                if ( $base_type ) {
+                    // Stored as "acrylic", "enamel", "oil" – make it look nice
+                    $label = ucfirst( strtolower( $base_type ) );
+                    echo esc_html( $label );
+                } else {
+                    echo '—';
+                }
             } elseif ( 'pct_on_shelf' === $column ) {
                 $on_shelf = get_post_meta( $post_id, self::META_ON_SHELF, true );
                 ?>

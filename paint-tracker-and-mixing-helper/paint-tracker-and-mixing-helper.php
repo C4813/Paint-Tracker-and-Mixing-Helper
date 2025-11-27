@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes to display your miniature paint collection, as well as a mixing and shading helper for specific colours.
- * Version: 0.8.1
+ * Version: 0.8.2
  * Author: C4813
  * Text Domain: paint-tracker-and-mixing-helper
  * Domain Path: /languages
@@ -31,7 +31,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_BASE_TYPE = '_pct_base_type';
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.8.1';
+        const VERSION = '0.8.2';
 
         public function __construct() {
             add_action( 'init',                    [ $this, 'register_types' ] );
@@ -854,16 +854,29 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                         'fields' => 'ids',
                     ]
                 );
-                
+
                 $range_id = ! empty( $term_ids ) ? (int) $term_ids[0] : 0;
+
+                // Build list of all related range IDs (this paint's range + any parents)
+                $all_range_ids = [];
+                if ( $range_id ) {
+                    $ancestors = get_ancestors( $range_id, self::TAX );
+                    $all_range_ids = array_unique(
+                        array_map(
+                            'intval',
+                            array_merge( [ $range_id ], $ancestors )
+                        )
+                    );
+                }
                 
                 $paints[] = [
-                    'id'        => $post_id,
-                    'name'      => $name,
-                    'number'    => $number,
-                    'hex'       => $hex,
-                    'base_type' => $base_type,
-                    'range_id'  => $range_id,
+                    'id'            => $post_id,
+                    'name'          => $name,
+                    'number'        => $number,
+                    'hex'           => $hex,
+                    'base_type'     => $base_type,
+                    'range_id'      => $range_id,
+                    'all_range_ids' => $all_range_ids,
                 ];
             }
 
@@ -972,14 +985,27 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 );
                 
                 $range_id = ! empty( $term_ids ) ? (int) $term_ids[0] : 0;
+
+                // Build list of all related range IDs (this paint's range + any parents)
+                $all_range_ids = [];
+                if ( $range_id ) {
+                    $ancestors = get_ancestors( $range_id, self::TAX );
+                    $all_range_ids = array_unique(
+                        array_map(
+                            'intval',
+                            array_merge( [ $range_id ], $ancestors )
+                        )
+                    );
+                }
                 
                 $paints[] = [
-                    'id'        => $post_id,
-                    'name'      => $name,
-                    'number'    => $number,
-                    'hex'       => $hex,
-                    'base_type' => $base_type,
-                    'range_id'  => $range_id,
+                    'id'            => $post_id,
+                    'name'          => $name,
+                    'number'        => $number,
+                    'hex'           => $hex,
+                    'base_type'     => $base_type,
+                    'range_id'      => $range_id,
+                    'all_range_ids' => $all_range_ids,
                 ];
             }
 
@@ -1055,10 +1081,25 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 $hex       = isset( $paint['hex'] ) ? $paint['hex'] : '';
                 $range_id  = isset( $paint['range_id'] ) ? (int) $paint['range_id'] : 0;
                 $base_type = isset( $paint['base_type'] ) ? $paint['base_type'] : '';
-            
-                if ( '' === $name || '' === $hex || ! $range_id ) {
+
+                if ( '' === $name || '' === $hex ) {
                     continue;
                 }
+
+                // All range IDs this paint belongs to (its own term + any parents)
+                $all_range_ids = [];
+                if ( ! empty( $paint['all_range_ids'] ) && is_array( $paint['all_range_ids'] ) ) {
+                    $all_range_ids = array_map( 'intval', $paint['all_range_ids'] );
+                } elseif ( $range_id ) {
+                    // Fallback for safety
+                    $all_range_ids = [ $range_id ];
+                }
+
+                if ( empty( $all_range_ids ) ) {
+                    continue;
+                }
+
+                $range_ids_attr = implode( ',', $all_range_ids );
 
                 $label = $name;
                 if ( '' !== $number ) {
@@ -1086,6 +1127,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                         data-hex="<?php echo esc_attr( $hex ); ?>"
                         data-label="<?php echo esc_attr( $label ); ?>"
                         data-range="<?php echo esc_attr( $range_id ); ?>"
+                        data-range-ids="<?php echo esc_attr( $range_ids_attr ); ?>"
                         data-id="<?php echo esc_attr( $id ); ?>"
                         data-base-type="<?php echo esc_attr( $base_type ); ?>"
                         style="<?php echo $style; ?>">

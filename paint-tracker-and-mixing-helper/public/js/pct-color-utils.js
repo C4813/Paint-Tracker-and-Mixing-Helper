@@ -69,10 +69,33 @@
         return lum < 0.5 ? '#f9fafb' : '#111827';
     }
 
+    // Helper: does this option belong to the selected range or one of its parents?
+    function optionMatchesRange($opt, selectedRangeId) {
+        var selected = String(selectedRangeId);
+        var rangeIdsAttr = $opt.attr('data-range-ids');
+        
+        if (rangeIdsAttr) {
+            var ids = String(rangeIdsAttr).split(',');
+            for (var i = 0; i < ids.length; i++) {
+                var id = String(ids[i]).trim();
+                if (id === selected) {
+                    return true;
+                }
+            }
+        } else {
+            // Fallback to single data-range
+            var optRange = String($opt.data('range') || '');
+            return (optRange === selected);
+        }
+
+        return false;
+    }
+
     // Expose helpers
     window.pctColorUtils.hexToRgb        = hexToRgb;
     window.pctColorUtils.rgbToHex        = rgbToHex;
     window.pctColorUtils.mixColors       = mixColors;
     window.pctColorUtils.textColorForHex = textColorForHex;
+    window.pctColorUtils.optionMatchesRange = optionMatchesRange;
 
 })(window);

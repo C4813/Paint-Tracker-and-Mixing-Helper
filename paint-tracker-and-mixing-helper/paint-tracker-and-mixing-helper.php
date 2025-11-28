@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes to display your miniature paint collection, as well as a mixing and shading helper for specific colours.
- * Version: 0.8.2
+ * Version: 0.8.3
  * Author: C4813
  * Text Domain: paint-tracker-and-mixing-helper
  * Domain Path: /languages
@@ -31,7 +31,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_BASE_TYPE = '_pct_base_type';
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.8.2';
+        const VERSION = '0.8.3';
 
         public function __construct() {
             add_action( 'init',                    [ $this, 'register_types' ] );
@@ -45,7 +45,6 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             add_action( 'quick_edit_custom_box',   [ $this, 'quick_edit_fields' ], 10, 2 );
             add_action( 'bulk_edit_custom_box',    [ $this, 'bulk_edit_fields' ], 10, 2 );
             add_action( 'save_post_' . self::CPT,  [ $this, 'save_quick_edit' ], 10, 2 );
-            add_action( 'admin_footer-edit.php',   [ $this, 'print_quick_edit_js' ] );
             add_action( 'admin_init',              [ $this, 'handle_bulk_on_shelf_update' ] );
             
             // Frontend assets
@@ -229,7 +228,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 ? sanitize_text_field( wp_unslash( $_POST['pct_base_type'] ) )
                 : '';
             
-            $allowed_base_types = [ 'acrylic', 'enamel', 'oil' ];
+            $allowed_base_types = [ 'acrylic', 'enamel', 'oil', 'lacquer' ];
             if ( ! in_array( $base_type, $allowed_base_types, true ) ) {
                 // Fallback default; you can change this if you prefer.
                 $base_type = 'acrylic';
@@ -322,6 +321,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                                         <option value="acrylic"><?php esc_html_e( 'Acrylic', 'paint-tracker-and-mixing-helper' ); ?></option>
                                         <option value="enamel"><?php esc_html_e( 'Enamel', 'paint-tracker-and-mixing-helper' ); ?></option>
                                         <option value="oil"><?php esc_html_e( 'Oil', 'paint-tracker-and-mixing-helper' ); ?></option>
+                                        <option value="lacquer"><?php esc_html_e( 'Lacquer', 'paint-tracker-and-mixing-helper' ); ?></option>
                                     </select>
                                 </span>
                             </label>
@@ -362,6 +362,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                                 <option value="acrylic"><?php esc_html_e( 'Set to Acrylic', 'paint-tracker-and-mixing-helper' ); ?></option>
                                 <option value="enamel"><?php esc_html_e( 'Set to Enamel', 'paint-tracker-and-mixing-helper' ); ?></option>
                                 <option value="oil"><?php esc_html_e( 'Set to Oil', 'paint-tracker-and-mixing-helper' ); ?></option>
+                                <option value="lacquer"><?php esc_html_e( 'Set to Lacquer', 'paint-tracker-and-mixing-helper' ); ?></option>
                             </select>
                         </span>
                     </label>
@@ -427,7 +428,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     }
         
                     if ( $do_base_type ) {
-                        $allowed_base_types = [ 'acrylic', 'enamel', 'oil' ];
+                        $allowed_base_types = [ 'acrylic', 'enamel', 'oil', 'lacquer' ];
                         if ( ! in_array( $bulk_base_type, $allowed_base_types, true ) ) {
                             $do_base_type = false;
                         }
@@ -498,7 +499,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     // Save base type (only if user picked something)
                     if ( isset( $_POST['pct_base_type'] ) && '' !== $_POST['pct_base_type'] ) {
                         $base_type = sanitize_text_field( wp_unslash( $_POST['pct_base_type'] ) );
-                        $allowed_base_types = [ 'acrylic', 'enamel', 'oil' ];
+                        $allowed_base_types = [ 'acrylic', 'enamel', 'oil', 'lacquer' ];
                         if ( in_array( $base_type, $allowed_base_types, true ) ) {
                             update_post_meta( $post_id, self::META_BASE_TYPE, $base_type );
                         }
@@ -508,49 +509,6 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     $on_shelf = isset( $_POST['pct_on_shelf'] ) ? 1 : 0;
                     update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
                 }
-
-        /**
-         * Print Quick Edit JS to populate fields from the row.
-         */
-        public function print_quick_edit_js() {
-            $screen = get_current_screen();
-            if ( empty( $screen ) || self::CPT !== $screen->post_type ) {
-                return;
-            }
-            ?>
-            <script type="text/javascript">
-            jQuery(function($) {
-                var $wp_inline_edit = inlineEditPost.edit;
-
-                inlineEditPost.edit = function( id ) {
-                    $wp_inline_edit.apply( this, arguments );
-
-                    var postId = 0;
-                    if ( typeof(id) === 'object' ) {
-                        postId = parseInt( this.getId(id), 10 );
-                    }
-
-                    if ( postId > 0 ) {
-                        var $editRow   = $('#edit-' + postId);
-                        var $postRow   = $('#post-' + postId);
-                        var number     = $('.column-pct_number', $postRow).text().trim();
-                        var hex        = $('.column-pct_hex', $postRow).text().trim();
-                        var onShelfVal = $('.pct-on-shelf-value', $postRow).data('on-shelf');
-
-                        $('input[name="pct_number"]', $editRow).val(number);
-                        $('input[name="pct_hex"]', $editRow).val(hex);
-
-                        if ( onShelfVal === 1 || onShelfVal === '1' ) {
-                            $('input[name="pct_on_shelf"]', $editRow).prop('checked', true);
-                        } else {
-                            $('input[name="pct_on_shelf"]', $editRow).prop('checked', false);
-                        }
-                    }
-                };
-            });
-            </script>
-            <?php
-        }
 
         /**
          * Enqueue admin scripts.
@@ -597,7 +555,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         /**
          * Enqueue front-end stylesheet + helper JS.
          */
-        function enqueue_frontend_assets() {
+        public function enqueue_frontend_assets() {
             // Only load assets on singular posts/pages that actually use our shortcodes.
             if ( ! is_singular() ) {
                 return;
@@ -1391,7 +1349,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 
                 // Normalise base type
                 $base_type = strtolower( trim( $base_type ) );
-                $allowed_base_types = [ 'acrylic', 'enamel', 'oil' ];
+                $allowed_base_types = [ 'acrylic', 'enamel', 'oil', 'lacquer' ];
                 if ( ! in_array( $base_type, $allowed_base_types, true ) ) {
                     $base_type = 'acrylic'; // default if invalid/missing
                 }

@@ -1,158 +1,147 @@
 # Paint Tracker & Mixing Helper
 
-A WordPress plugin for managing miniature paint collections and providing interactive colour tools such as a paint table, mixer, and shade helper.
+Shortcodes to display your miniature paint collection, plus interactive mixing and shading helpers for specific colours.
+
+- **Version:** 0.8.3  
+- **Requires at least:** WordPress 6.0  
+- **Tested up to:** WordPress 6.7  
+- **License:** GPLv2 or later
 
 ---
 
-## 📦 What This Plugin Does
+## Overview
 
-Paint Tracker & Mixing Helper helps you:
+Paint Tracker & Mixing Helper lets you keep a structured list of your miniature paints in WordPress and use that data on the front end via three shortcodes:
 
-- Maintain a structured library of your paints  
-- Track which paints you currently own (“On the shelf”)  
-- Store useful links for each paint (tutorials, reviews, example builds, etc.)  
-- Display a searchable, filterable paint table on the frontend  
-- Use interactive tools such as:
-  - **Two-paint mixing helper**
-  - **Shade helper with auto-generated lighter/darker mixes**
+- A **paint table** (`[paint_table]`) for listing paints from a range.
+- A **two-paint mixing helper** (`[mixing-helper]`) for mixing two paints and previewing the result.
+- A **shade helper** (`[shade-helper]`) that suggests suitable highlight and shadow colours for a base paint.
 
-The plugin creates and manages:
-
-### **Custom Post Type: “Paint Colours”**
-Each paint includes:
-- Name (post title)  
-- Paint number  
-- Hex colour  
-- “On the shelf” flag  
-- Optional linked posts/URLs  
-
-### **Custom Taxonomy: “Paint Ranges”**
-Use this to group paints — for example:
-- Vallejo Model Color  
-- Vallejo Game Color  
-- Citadel  
-- Army Painter  
-- Etc.
+All data is stored in a custom post type and taxonomy, so you can edit paints in the admin like any other content.
 
 ---
 
-## 📊 Shortcodes
+## Data model
+
+### Custom post type: Paint Colours
+
+The plugin registers a custom post type:
+
+- **Post type:** `paint_color`
+- **Label:** “Paint Colours”
+
+Each paint stores:
+
+- **Title** – paint name.
+- **Paint number / code / type** – free text field (e.g. `70.800`, `Base`, `Layer`).
+- **Base type** – required; one of:
+  - `Acrylic`
+  - `Enamel`
+  - `Oil`
+  - `Lacquer`
+- **Hex colour** – used for front-end colour display (e.g. `#2f353a`).
+- **On the shelf** – checkbox for tracking whether you currently own the paint.
+- **Linked posts / URLs** – one or more external links per paint (label + URL), shown in the **Models** column on the front-end table.
+
+### Taxonomy: Paint Ranges
+
+The plugin registers a hierarchical taxonomy:
+
+- **Taxonomy:** `paint_range`
+- **Label:** “Paint Ranges”
+- **Usage:** assign paints to ranges such as “Vallejo Model Color”, “Citadel Layer”, etc.
+
+Ranges are used to:
+
+- Filter paints displayed in the `[paint_table]` shortcode.
+- Filter paint dropdowns in the mixing and shade helpers.
+- Limit CSV import/export to a particular range.
+
+---
+
+## Front-end shortcodes
 
 ### `[paint_table]`
-Displays a table of paints, optionally filtered by range.
 
-**Attributes:**
-- `range` – taxonomy slug (optional)  
-- `limit` – number of paints to show (`-1` = all)  
-- `orderby` – `"meta_number"` or `"title"`  
-- `shelf` – `"yes"` to show only paints on your shelf, `"any"` for all  
+Displays a table of paints with optional filtering by range and “On the shelf”.
 
-**Example:**
+**Attributes**
+
+- `range` – (optional) `paint_range` slug. If omitted, all ranges are shown.  
+- `limit` – number of paints to show. Use `-1` to show all matches.  
+- `orderby` – `meta_number` (paint number / code) or `title`. Defaults to `meta_number`.  
+- `shelf` – `yes` to show only paints marked “On the shelf”; `any` to show all.
+
+**Example**
+
 ```
 [paint_table range="vallejo-model-color" limit="-1" orderby="meta_number" shelf="any"]
 ```
 
-### Paint Table Display Modes
-The table can display colours in two styles:
+**Table columns**
 
-- **Dot mode** (default): A small circular swatch column  
-- **Row mode**: Entire row is coloured using the paint’s hex value, with automatic text-contrast adjustment  
+- Optional **swatch** column (in “dots” mode).
+- **Colour** – paint name.
+- **Code / Type** – paint number / code.
+- **Models** – links created via the “Linked posts / URLs” meta box.
+
+The table can be displayed in one of two modes (configured under **Paint Colours → Info & Settings**):
+
+- **Dots** – a small colour swatch column.
+- **Rows** – the entire row background is coloured with automatic light/dark text for legibility.
+
+If you set a **Shading page URL** (see settings below), the colour swatch / row becomes clickable and links to your shade helper page, passing the paint ID and hex value as query parameters.
 
 ---
 
 ### `[mixing-helper]`
-Displays the **two-paint mixer**:
 
-- Choose two paints  
-- Choose their ranges  
-- Set the number of parts for each  
-- See the mixed colour and the resulting hex  
+Shows the main two-paint mixing helper.
 
-Useful for planning blends, transitions, highlights, and shadows.
+**Features**
 
----
+- Range dropdown to filter the paint list.
+- Two paint selectors (left and right).
+- “Parts” inputs for each paint to define the mixing ratio.
+- Preview area showing the resulting mixed colour and hex code.
+- Base-type safety check: paints with incompatible base types (e.g. Acrylic vs Enamel vs Oil vs Lacquer) cannot be mixed. A warning is shown instead of a mixed result.
 
 ### `[shade-helper]`
-Displays the **shade helper tool**:
 
-- Choose a base paint  
-- Plugin automatically finds the **darkest** and **lightest** paints in the same range  
-- Generates a ladder of darker and lighter mixes (3 steps each)  
-- Shows hex values and mix ratios for every step  
+Shows the shade helper as a standalone tool.
 
-#### Shade Helper Page URL  
-To enable clickable colours/rows in your paint table:  
-Provide the URL of the page where `[shade-helper]` is used.
+**Features**
 
-When set:
-- Clicking a swatch or row in `[paint_table]` sends the chosen paint directly into the shade helper.
-- The shade helper automatically opens with the correct colour selected.
-
-If empty:
-- Swatches/rows remain non-clickable.
+- Range dropdown to filter the paint list.
+- Paint selector with colour swatch and label.
+- Automatic suggestions for highlight and shadow colours (strict or relaxed hue behaviour).
+- Deep-linking support when coming from the paint table.
 
 ---
 
-## 📥 Importing Paints from CSV
+## Admin screens
 
-Go to **Paint Colours → Import from CSV**.
-
-Options:
-- Choose the paint range to assign new paints to  
-- Upload a CSV (one paint per row)
-
-**Supported columns:**
-- `title` – paint name  
-- `number` – paint number (optional)  
-- `hex` – hex colour (e.g., `#2f353a` or `2f353a`)  
-- `on_shelf` – `0` or `1`  
-
-A header row (with these column names) is supported and automatically detected.
+Includes:
+- Enhanced Edit screen
+- Quick Edit and Bulk Edit fields
+- CSV Import / Export
+- Info & Settings (paint table display mode, shading page URL, hue behaviour)
 
 ---
 
-## 📤 Exporting Paints to CSV
+## Installation
 
-Go to **Paint Colours → Export to CSV**.
-
-Options:
-- Filter by range  
-- Limit export to only paints “on the shelf” (optional)
-
-**Exported columns:**
-- `title`  
-- `number`  
-- `hex`  
-- `on_shelf` (`0` or `1`)  
-- `ranges` – pipe-separated list of assigned ranges  
+1. Upload the plugin folder to `/wp-content/plugins/`.
+2. Activate **Paint Tracker and Mixing Helper**.
+3. Add paint ranges.
+4. Add paints.
+5. Create pages using the shortcodes:
+   - `[paint_table]`
+   - `[mixing-helper]`
+   - `[shade-helper]`
 
 ---
 
-## 🧩 Additional Features
+## License
 
-- Dropdowns respect custom taxonomy order (compatible with “Taxonomy Terms Order” plugin)  
-- Paint table sorting automatically uses paint numbers when available  
-- Shade helper now supports **unique paint selection by ID**, preventing conflicts where multiple paints share the same hex code  
-- Clean, responsive frontend styling  
-- JavaScript-driven custom dropdown components
-
----
-
-## 📝 License
-
-This project is distributed under the GNU General Public License version 2.
-
----
-
-## 🤝 Contributing
-
-Feature suggestions are welcome!
-
----
-
-## ⚠️ Disclaimer
-
-**I am not a developer.** ChatGPT has done all of the heavy lifting here and whilst I more or less understand what it is doing, I would not have managed this by myself.
-
----
-
+GPLv2 or later.

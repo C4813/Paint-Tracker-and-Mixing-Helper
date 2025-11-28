@@ -153,7 +153,7 @@ elseif ( 'import_page' === $pct_admin_view ) : ?>
         </p>
         <p>
             <?php esc_html_e(
-                'Expected format (per row): title, number, hex colour, base type (acrylic/enamel/oil/lacquer), on shelf (0/1, optional; 1 = yes, 0 = no).',
+                'Expected format (per row): title, code / type (70.861 / Layer), hex colour, base type (acrylic/enamel/oil/lacquer), on shelf (0/1, optional; 1 = yes, 0 = no).',
                 'paint-tracker-and-mixing-helper'
             ); ?>
         </p>

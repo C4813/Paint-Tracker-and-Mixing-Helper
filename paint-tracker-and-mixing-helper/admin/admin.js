@@ -1,32 +1,40 @@
 jQuery(function($) {
+    
     /**
-     * QUICK EDIT: copy "On shelf" value from row into inline editor.
+     * QUICK EDIT: copy number, hex, and "On shelf" value from row into inline editor.
      */
     if (typeof inlineEditPost !== 'undefined') {
         var $wp_inline_edit = inlineEditPost.edit;
-
+    
         inlineEditPost.edit = function(id) {
-            // Call original
+            // Call original handler
             $wp_inline_edit.apply(this, arguments);
-
+    
             var postId = 0;
             if (typeof id === 'object') {
                 postId = parseInt(this.getId(id), 10);
             } else {
                 postId = parseInt(id, 10);
             }
-
+    
             if (postId > 0) {
-                var $row      = $('#post-' + postId);
+                var $row     = $('#post-' + postId);
+                var $editRow = $('#edit-' + postId);
+    
+                // Read values from the table columns
+                var number = $('.column-pct_number', $row).text().trim();
+                var hex    = $('.column-pct_hex', $row).text().trim();
+    
                 var onShelfEl = $row.find('.pct-on-shelf-value');
                 var onShelf   = false;
-
                 if (onShelfEl.length) {
                     var val = onShelfEl.data('on-shelf');
                     onShelf = (val === 1 || val === '1');
                 }
-
-                var $editRow = $('#edit-' + postId);
+    
+                // Push into the Quick Edit form fields
+                $('input[name="pct_number"]', $editRow).val(number);
+                $('input[name="pct_hex"]', $editRow).val(hex);
                 $('input[name="pct_on_shelf"]', $editRow).prop('checked', onShelf);
             }
         };
@@ -114,7 +122,9 @@ jQuery(function($) {
     /**
      * Quick Edit: hide password / private controls for Paint Colours.
      */
-    $('.inline-edit-row input[name="post_password"]').closest('label').hide();
-    $('.inline-edit-row input[name="keep_private"]').closest('label').hide();
+    if ($('body').hasClass('post-type-paint_color')) {
+        $('.inline-edit-row input[name="post_password"]').closest('label').hide();
+        $('.inline-edit-row input[name="keep_private"]').closest('label').hide();
+    }
 
 });

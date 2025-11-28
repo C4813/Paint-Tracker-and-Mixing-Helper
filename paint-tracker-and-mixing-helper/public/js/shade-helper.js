@@ -48,25 +48,7 @@ jQuery(function($) {
             var selected = String(rangeId);
             $options.each(function() {
                 var $opt = $(this);
-
-                // Prefer data-range-ids (comma-separated list of this paint's range + parents)
-                var rangeIdsAttr = $opt.attr('data-range-ids');
-                var shouldShow = false;
-
-                if (rangeIdsAttr) {
-                    var ids = String(rangeIdsAttr).split(',');
-                    for (var i = 0; i < ids.length; i++) {
-                        if ($.trim(ids[i]) === selected) {
-                            shouldShow = true;
-                            break;
-                        }
-                    }
-                } else {
-                    // Fallback: behave as before using single data-range
-                    var optRange = String($opt.data('range') || '');
-                    shouldShow = (optRange === selected);
-                }
-
+                var shouldShow = window.pctColorUtils.optionMatchesRange($opt, selected);
                 $opt.toggle(shouldShow);
             });
         }

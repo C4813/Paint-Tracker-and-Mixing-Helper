@@ -61,14 +61,24 @@ if ( 'meta_box' === $pct_admin_view ) : ?>
             class="regular-text">
     </p>
 
+    <!-- On shelf + exclude from shading helper -->
     <p>
-        <label for="pct_on_shelf">
-            <strong><?php esc_html_e( 'On the shelf', 'paint-tracker-and-mixing-helper' ); ?></strong>
-        </label><br>
         <label>
-            <input type="checkbox" id="pct_on_shelf" name="pct_on_shelf" value="1"
-                <?php checked( isset( $pct_on_shelf ) ? $pct_on_shelf : '', '1' ); ?>>
-            <?php esc_html_e( 'Yes, I currently have this paint on my shelf', 'paint-tracker-and-mixing-helper' ); ?>
+            <input type="checkbox"
+                   name="pct_on_shelf"
+                   value="1"
+                   <?php checked( (int) $pct_on_shelf, 1 ); ?> />
+            <?php esc_html_e( 'On the shelf', 'paint-tracker-and-mixing-helper' ); ?>
+        </label>
+    </p>
+
+    <p>
+        <label>
+            <input type="checkbox"
+                   name="pct_exclude_shade"
+                   value="1"
+                   <?php checked( (int) $pct_exclude_shade, 1 ); ?> />
+            <?php esc_html_e( 'Exclude from shading helper', 'paint-tracker-and-mixing-helper' ); ?>
         </label>
     </p>
 
@@ -213,7 +223,7 @@ elseif ( 'export_page' === $pct_admin_view ) : ?>
             [
                 'taxonomy'   => PCT_Paint_Table_Plugin::TAX,
                 'hide_empty' => false,
-                'orderby'    => 'name',
+                'orderby'    => 'term_order',
                 'order'      => 'ASC',
             ]
         );

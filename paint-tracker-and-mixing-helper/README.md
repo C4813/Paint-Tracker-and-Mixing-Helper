@@ -2,7 +2,7 @@
 
 Shortcodes to display your miniature paint collection, plus interactive mixing and shading helpers for specific colours.
 
-- **Version:** 0.9.0  
+- **Version:** 0.9.1  
 - **Requires at least:** WordPress 6.0  
 - **Tested up to:** WordPress 6.7  
 - **License:** GPLv2 or later

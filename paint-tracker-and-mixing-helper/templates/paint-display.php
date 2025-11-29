@@ -99,10 +99,13 @@ $container_class_attr = implode( ' ', array_map( 'sanitize_html_class', $contain
                 $links  = isset( $paint['links'] )  && is_array( $paint['links'] )
                     ? $paint['links']
                     : [];
+                $no_hex_label = __( 'No colour hex', 'paint-tracker-and-mixing-helper' );
 
                 // Build shade helper URL if one is configured.
+                // Rows with no hex should NOT be clickable in row-highlight mode,
+                // so we only generate a URL when a hex value exists.
                 $shade_url = '';
-                if ( ! empty( $pct_mixing_page_url ) && ( $id || $hex ) ) {
+                if ( ! empty( $pct_mixing_page_url ) && $hex && ( $id || $hex ) ) {
                     $args = [];
 
                     if ( $id ) {
@@ -124,7 +127,9 @@ $container_class_attr = implode( ' ', array_map( 'sanitize_html_class', $contain
 
                 $row_style   = '';
                 $row_classes = [];
-
+                $row_attrs   = [];
+                
+                // Row colouring in "rows" mode if we have a hex
                 if ( 'rows' === $display_mode && $hex ) {
                     $bg_color   = $hex;
                     $text_color = pct_text_color_for_hex_for_table( $hex );
@@ -134,25 +139,35 @@ $container_class_attr = implode( ' ', array_map( 'sanitize_html_class', $contain
                         $text_color
                     );
                 }
-
+                
                 // Make entire row clickable in row-highlight mode when we have a shade URL.
-                $row_data_attr = '';
                 if ( 'rows' === $display_mode && $shade_url ) {
                     $row_classes[] = 'pct-row-clickable';
-                    $row_data_attr = ' data-shade-url="' . esc_url( $shade_url ) . '"';
+                    $row_attrs[]   = 'data-shade-url="' . esc_url( $shade_url ) . '"';
                 }
-
-                $class_attr = '';
+                
+                // Mark rows with no hex so we can style them differently
+                if ( 'rows' === $display_mode && ! $hex ) {
+                    $row_classes[] = 'pct-row-no-hex';
+                }
+                
+                // Build attribute string
+                $attr = '';
+                
                 if ( ! empty( $row_classes ) ) {
-                    $class_attr = ' class="' . esc_attr( implode( ' ', $row_classes ) ) . '"';
+                    $attr .= ' class="' . esc_attr( implode( ' ', $row_classes ) ) . '"';
                 }
-
-                $style_attr = '';
+                
                 if ( $row_style ) {
-                    $style_attr = ' style="' . esc_attr( $row_style ) . '"';
+                    $attr .= ' style="' . esc_attr( $row_style ) . '"';
+                }
+                
+                if ( ! empty( $row_attrs ) ) {
+                    $attr .= ' ' . implode( ' ', $row_attrs );
                 }
                 ?>
-                <tr<?php echo $class_attr . $style_attr . $row_data_attr; ?>>
+                <tr<?php echo $attr; ?>>
+
                     <?php if ( 'dots' === $display_mode ) : ?>
                         <td class="pct-swatch-cell">
                             <?php if ( $hex ) : ?>
@@ -168,7 +183,12 @@ $container_class_attr = implode( ' ', array_map( 'sanitize_html_class', $contain
                         </td>
                     <?php endif; ?>
 
-                    <td class="pct-name-cell">
+                    <td
+                        class="pct-name-cell<?php echo ( 'rows' === $display_mode && ! $hex ) ? ' pct-no-hex-cell' : ''; ?>"
+                        <?php if ( 'rows' === $display_mode && ! $hex ) : ?>
+                            data-no-hex-label="<?php echo esc_attr( $no_hex_label ); ?>"
+                        <?php endif; ?>
+                    >
                         <span class="pct-name"><?php echo esc_html( $name ); ?></span>
                     </td>
                     <td class="pct-number">

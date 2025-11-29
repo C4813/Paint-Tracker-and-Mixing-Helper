@@ -11,6 +11,47 @@
 if ( ! isset( $pct_ranges, $pct_paints ) || empty( $pct_ranges ) || empty( $pct_paints ) ) {
     return;
 }
+
+/**
+ * Build a parent → children map for ranges, preserving the order
+ * coming from get_terms() (which is already ordered by term_order).
+ */
+$pct_ranges_by_parent = [];
+foreach ( $pct_ranges as $range ) {
+    $parent_id = (int) $range->parent;
+    if ( ! isset( $pct_ranges_by_parent[ $parent_id ] ) ) {
+        $pct_ranges_by_parent[ $parent_id ] = [];
+    }
+    $pct_ranges_by_parent[ $parent_id ][] = $range;
+}
+
+/**
+ * Recursive renderer for hierarchical range options.
+ *
+ * We guard it with function_exists so it can be safely included
+ * in multiple templates without fatal errors.
+ */
+if ( ! function_exists( 'pct_render_range_options_hierarchical' ) ) {
+    function pct_render_range_options_hierarchical( $parent_id, $map, $depth = 0 ) {
+        if ( empty( $map[ $parent_id ] ) ) {
+            return;
+        }
+
+        foreach ( $map[ $parent_id ] as $term ) {
+            $indent = str_repeat( '— ', max( 0, (int) $depth ) );
+            ?>
+            <div class="pct-mix-range-option"
+                 data-range="<?php echo esc_attr( $term->term_id ); ?>">
+                <span class="pct-mix-option-label">
+                    <?php echo esc_html( $indent . $term->name ); ?>
+                </span>
+            </div>
+            <?php
+            // Recurse into children
+            pct_render_range_options_hierarchical( (int) $term->term_id, $map, $depth + 1 );
+        }
+    }
+}
 ?>
 
 <!-- ========== MAIN TWO-PAINT MIXER ========== -->
@@ -44,14 +85,10 @@ if ( ! isset( $pct_ranges, $pct_paints ) || empty( $pct_ranges ) || empty( $pct_
                                     <?php esc_html_e( 'All', 'paint-tracker-and-mixing-helper' ); ?>
                                 </span>
                             </div>
-                            <?php foreach ( $pct_ranges as $range ) : ?>
-                                <div class="pct-mix-range-option"
-                                    data-range="<?php echo esc_attr( $range->term_id ); ?>">
-                                    <span class="pct-mix-option-label">
-                                        <?php echo esc_html( $range->name ); ?>
-                                    </span>
-                                </div>
-                            <?php endforeach; ?>
+                            <?php
+                            // Top-level parents (parent_id = 0)
+                            pct_render_range_options_hierarchical( 0, $pct_ranges_by_parent );
+                            ?>
                         </div>
                     </div>
                 </label>
@@ -113,14 +150,10 @@ if ( ! isset( $pct_ranges, $pct_paints ) || empty( $pct_ranges ) || empty( $pct_
                                     <?php esc_html_e( 'All', 'paint-tracker-and-mixing-helper' ); ?>
                                 </span>
                             </div>
-                            <?php foreach ( $pct_ranges as $range ) : ?>
-                                <div class="pct-mix-range-option"
-                                    data-range="<?php echo esc_attr( $range->term_id ); ?>">
-                                    <span class="pct-mix-option-label">
-                                        <?php echo esc_html( $range->name ); ?>
-                                    </span>
-                                </div>
-                            <?php endforeach; ?>
+                            <?php
+                            // Same hierarchical list on the right side
+                            pct_render_range_options_hierarchical( 0, $pct_ranges_by_parent );
+                            ?>
                         </div>
                     </div>
                 </label>

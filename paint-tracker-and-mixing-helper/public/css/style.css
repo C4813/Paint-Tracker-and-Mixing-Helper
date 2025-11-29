@@ -78,6 +78,45 @@
     cursor: pointer;
 }
 
+/* Row-highlight mode: clearly mark paints that have no hex colour.
+   - whole row background forced to white
+   - label sits neatly under the paint name in the name cell. */
+.pct-table-container.pct-row-highlight-mode table.pct-table tbody
+tr.pct-row-no-hex td {
+    background-color: #ffffff !important;
+}
+
+.pct-table-container.pct-row-highlight-mode table.pct-table tbody
+tr.pct-row-no-hex .pct-name-cell.pct-no-hex-cell {
+    position: relative;
+    overflow: visible;
+    background-color: #ffffff !important;
+    color: #111827 !important;
+}
+
+/* Under-name "NO COLOUR HEX" label */
+.pct-table-container.pct-row-highlight-mode table.pct-table tbody
+tr.pct-row-no-hex .pct-name-cell.pct-no-hex-cell::after {
+    content: attr(data-no-hex-label);
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translate(-50%, -0.05em);
+    font-size: 11px;
+    color: rgba(17, 24, 39, 0.38);
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+/* Keep the actual paint name above the label */
+.pct-table-container.pct-row-highlight-mode table.pct-table tbody
+tr.pct-row-no-hex .pct-name-cell.pct-no-hex-cell .pct-name {
+    display: block;
+    padding-bottom: 2px;
+    position: relative;
+    z-index: 1;
+}
+
 /* ==========================================
    GLOBAL TABLE LINK RULES – removes ALL underlines
    ========================================== */

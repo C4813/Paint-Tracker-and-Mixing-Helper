@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes to display your miniature paint collection, as well as a mixing and shading helper for specific colours.
- * Version: 0.9.0
+ * Version: 0.9.1
  * Author: C4813
  * Text Domain: paint-tracker-and-mixing-helper
  * Domain Path: /languages
@@ -33,7 +33,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.9.0';
+        const VERSION = '0.9.1';
 
         public function __construct() {
             add_action( 'init',                    [ $this, 'register_types' ] );

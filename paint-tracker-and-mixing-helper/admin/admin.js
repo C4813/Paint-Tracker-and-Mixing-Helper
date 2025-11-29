@@ -1,41 +1,48 @@
 jQuery(function($) {
-    
+
     /**
-     * QUICK EDIT: copy number, hex, and "On shelf" value from row into inline editor.
+     * QUICK EDIT: copy number, hex, "On shelf" and "Exclude from shading" from row into inline editor.
      */
     if (typeof inlineEditPost !== 'undefined') {
         var $wp_inline_edit = inlineEditPost.edit;
-    
+
         inlineEditPost.edit = function(id) {
             // Call original handler
             $wp_inline_edit.apply(this, arguments);
-    
+
             var postId = 0;
             if (typeof id === 'object') {
                 postId = parseInt(this.getId(id), 10);
             } else {
                 postId = parseInt(id, 10);
             }
-    
+
             if (postId > 0) {
                 var $row     = $('#post-' + postId);
                 var $editRow = $('#edit-' + postId);
-    
-                // Read values from the table columns
+
+                // Read values from the table columns (unchanged from your working version)
                 var number = $('.column-pct_number', $row).text().trim();
                 var hex    = $('.column-pct_hex', $row).text().trim();
-    
-                var onShelfEl = $row.find('.pct-on-shelf-value');
-                var onShelf   = false;
-                if (onShelfEl.length) {
-                    var val = onShelfEl.data('on-shelf');
-                    onShelf = (val === 1 || val === '1');
+
+                // Read on-shelf + exclude-from-shade flags from the span
+                var metaEl       = $row.find('.pct-on-shelf-value');
+                var onShelf      = false;
+                var excludeShade = false;
+
+                if (metaEl.length) {
+                    var shelfVal   = metaEl.data('on-shelf');
+                    var excludeVal = metaEl.data('exclude-shade');
+
+                    onShelf      = (shelfVal === 1 || shelfVal === '1');
+                    excludeShade = (excludeVal === 1 || excludeVal === '1');
                 }
-    
+
                 // Push into the Quick Edit form fields
-                $('input[name="pct_number"]', $editRow).val(number);
-                $('input[name="pct_hex"]', $editRow).val(hex);
-                $('input[name="pct_on_shelf"]', $editRow).prop('checked', onShelf);
+                $('input[name="pct_number"]',        $editRow).val(number);
+                $('input[name="pct_hex"]',           $editRow).val(hex);
+                $('input[name="pct_on_shelf"]',      $editRow).prop('checked', onShelf);
+                $('input[name="pct_exclude_shade"]', $editRow).prop('checked', excludeShade);
             }
         };
     }

@@ -1,13 +1,7 @@
 jQuery(function($) {
-
-    // ---------- L10n helper ----------
-
-    function pctMixL10n(key, fallback) {
-        if (window.pctMixingHelperL10n && typeof window.pctMixingHelperL10n[key] === 'string') {
-            return window.pctMixingHelperL10n[key];
-        }
-        return fallback;
-    }
+    
+    var pctMixL10n       = window.pctColorUtils.makeL10nHelper('pctMixingHelperL10n');
+    var closeAllDropdowns = window.pctColorUtils.closeAllDropdowns;
     
     // Turn "acrylic" -> "Acrylic" etc.
     function pctHumanBaseType(type) {
@@ -24,17 +18,6 @@ jQuery(function($) {
     var rgbToHex        = window.pctColorUtils.rgbToHex;
     var mixColors       = window.pctColorUtils.mixColors;
     var textColorForHex = window.pctColorUtils.textColorForHex;
-
-    // ---------- Shared dropdown helpers (for mixer) ----------
-
-    function closeAllDropdowns() {
-        $('.pct-mix-dropdown, .pct-mix-range-dropdown').each(function() {
-            var $dd = $(this);
-            $dd.removeClass('pct-mix-open');
-            $dd.find('.pct-mix-list')
-               .attr('hidden', 'hidden');
-        });
-    }
 
     $(document).on('click', function() {
         closeAllDropdowns();

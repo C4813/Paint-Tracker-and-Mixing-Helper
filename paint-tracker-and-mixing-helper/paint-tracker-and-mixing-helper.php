@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes to display your miniature paint collection, as well as a mixing and shading helper for specific colours.
- * Version: 0.10.0
+ * Version: 0.10.1
  * Author: C4813
  * Text Domain: paint-tracker-and-mixing-helper
  * Domain Path: /languages
@@ -33,7 +33,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.10.0';
+        const VERSION = '0.10.1';
 
         public function __construct() {
             add_action( 'init',                    [ $this, 'register_types' ] );
@@ -522,102 +522,107 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
          * Enqueue front-end stylesheet + helper JS.
          */
         function enqueue_frontend_assets() {
-                    // Only load assets on singular posts/pages that actually use our shortcodes.
-                    if ( ! is_singular() ) {
-                        return;
-                    }
-        
-                    global $post;
-        
-                    if ( ! ( $post instanceof WP_Post ) ) {
-                        return;
-                    }
-        
-                    $content    = $post->post_content;
-                    $has_paint  = has_shortcode( $content, 'paint_table' );
-                    $has_mixing = has_shortcode( $content, 'mixing-helper' );
-                    $has_shade  = has_shortcode( $content, 'shade-helper' );
-        
-                    if ( ! $has_paint && ! $has_mixing && ! $has_shade ) {
-                        return;
-                    }
-        
-                    // Shared frontend styles (used by all three UIs).
-                    wp_enqueue_style(
-                        'pct_style',
-                        plugin_dir_url( __FILE__ ) . 'public/css/style.css',
-                        [],
-                        self::VERSION
-                    );
-        
-                    // Paint table only.
-                    if ( $has_paint ) {
-                        wp_enqueue_script(
-                            'pct_paint_table_js',
-                            plugin_dir_url( __FILE__ ) . 'public/js/paint-table.js',
-                            [ 'jquery' ],
-                            self::VERSION,
-                            true
-                        );
-                    }
-        
-                    // Colour utility helpers (used by mixing + shading).
-                    if ( $has_mixing || $has_shade ) {
-                        wp_enqueue_script(
-                            'pct_color_utils',
-                            plugin_dir_url( __FILE__ ) . 'public/js/pct-color-utils.js',
-                            [ 'jquery' ],
-                            self::VERSION,
-                            true
-                        );
-                    }
-        
-                    // Mixing helper.
-                    if ( $has_mixing ) {
-                        wp_enqueue_script(
-                            'pct_mixing_helper',
-                            plugin_dir_url( __FILE__ ) . 'public/js/mixing-helper.js',
-                            [ 'jquery', 'pct_color_utils' ],
-                            self::VERSION,
-                            true
-                        );
-        
-                        wp_localize_script(
-                            'pct_mixing_helper',
-                            'pctMixingHelperL10n',
-                            [
-                                'selectPaint' => __( 'Select a paint', 'paint-tracker-and-mixing-helper' ),
-                            ]
-                        );
-                    }
-        
-                    // Shade helper.
-                    if ( $has_shade ) {
-                        wp_enqueue_script(
-                            'pct_shade_helper',
-                            plugin_dir_url( __FILE__ ) . 'public/js/shade-helper.js',
-                            [ 'jquery', 'pct_color_utils' ],
-                            self::VERSION,
-                            true
-                        );
-        
-                        $shade_mode = get_option( 'pct_shade_hue_mode', 'strict' );
-        
-                        wp_localize_script(
-                            'pct_shade_helper',
-                            'pctShadeHelperL10n',
-                            [
-                                'selectPaint'      => __( 'Select a paint to generate lighter and darker mixes.', 'paint-tracker-and-mixing-helper' ),
-                                'invalidHex'       => __( 'This colour has an invalid hex value.', 'paint-tracker-and-mixing-helper' ),
-                                'noSelectedPaint'  => __( 'Could not determine the selected paint in this range.', 'paint-tracker-and-mixing-helper' ),
-                                'noRange'          => __( 'This paint is not assigned to a range.', 'paint-tracker-and-mixing-helper' ),
-                                'notEnoughPaints'  => __( 'Not enough paints in this range to build a shade ladder.', 'paint-tracker-and-mixing-helper' ),
-                                'unableToGenerate' => __( 'Unable to generate mixes for this colour.', 'paint-tracker-and-mixing-helper' ),
-                                'shadeMode'        => $shade_mode,
-                            ]
-                        );
-                    }
-                }
+            // Only load assets on singular posts/pages that actually use our shortcodes.
+            if ( ! is_singular() ) {
+                return;
+            }
+
+            global $post;
+
+            if ( ! ( $post instanceof WP_Post ) ) {
+                return;
+            }
+
+            $content    = $post->post_content;
+            $has_paint  = has_shortcode( $content, 'paint_table' );
+            $has_mixing = has_shortcode( $content, 'mixing-helper' );
+            $has_shade  = has_shortcode( $content, 'shade-helper' );
+
+            // If none of our shortcodes are present, bail early.
+            if ( ! $has_paint && ! $has_mixing && ! $has_shade ) {
+                return;
+            }
+
+            // Shared frontend styles (used by all three UIs).
+            wp_enqueue_style(
+                'pct_paint_table',
+                plugin_dir_url( __FILE__ ) . 'public/css/style.css',
+                [],
+                self::VERSION
+            );
+
+            // Paint table only.
+            if ( $has_paint ) {
+                wp_enqueue_script(
+                    'pct_paint_table_js',
+                    plugin_dir_url( __FILE__ ) . 'public/js/paint-table.js',
+                    [],
+                    self::VERSION,
+                    true
+                );
+            }
+
+            // Colour utility helpers (used by mixing + shading).
+            if ( $has_mixing || $has_shade ) {
+                wp_enqueue_script(
+                    'pct_color_utils',
+                    plugin_dir_url( __FILE__ ) . 'public/js/pct-color-utils.js',
+                    [ 'jquery' ],
+                    self::VERSION,
+                    true
+                );
+            }
+
+            // Mixing helper.
+            if ( $has_mixing ) {
+                wp_enqueue_script(
+                    'pct_mixing_helper',
+                    plugin_dir_url( __FILE__ ) . 'public/js/mixing-helper.js',
+                    [ 'jquery', 'pct_color_utils' ],
+                    self::VERSION,
+                    true
+                );
+
+                // Localise strings for mixing-helper.js
+                wp_localize_script(
+                    'pct_mixing_helper',
+                    'pctMixingHelperL10n',
+                    [
+                        'selectPaint' => __( 'Select a paint', 'paint-tracker-and-mixing-helper' ),
+                    ]
+                );
+            }
+
+            // Shade helper.
+            if ( $has_shade ) {
+                wp_enqueue_script(
+                    'pct_shade_helper',
+                    plugin_dir_url( __FILE__ ) . 'public/js/shade-helper.js',
+                    [ 'jquery', 'pct_color_utils' ],
+                    self::VERSION,
+                    true
+                );
+
+                $shade_mode = get_option( 'pct_shade_hue_mode', 'strict' );
+
+                // Localise strings for shade-helper.js
+                wp_localize_script(
+                    'pct_shade_helper',
+                    'pctShadeHelperL10n',
+                    [
+                        'selectPaint'      => __( 'Select a paint to generate lighter and darker mixes.', 'paint-tracker-and-mixing-helper' ),
+                        'invalidHex'       => __( 'This colour has an invalid hex value.', 'paint-tracker-and-mixing-helper' ),
+                        'noSelectedPaint'  => __( 'Could not determine the selected paint in this range.', 'paint-tracker-and-mixing-helper' ),
+                        'noRange'          => __( 'This paint is not assigned to a range.', 'paint-tracker-and-mixing-helper' ),
+                        'notEnoughPaints'  => __( 'Not enough paints in this range to build a shade ladder.', 'paint-tracker-and-mixing-helper' ),
+                        'unableToGenerate' => __( 'Unable to generate mixes for this colour.', 'paint-tracker-and-mixing-helper' ),
+                        'noDarker'         => __( 'Not enough darker paints to generate darker mixes.', 'paint-tracker-and-mixing-helper' ),
+                        'noLighter'        => __( 'Not enough lighter paints to generate lighter mixes.', 'paint-tracker-and-mixing-helper' ),
+                        'hueMode'          => $shade_mode, // 'strict' or 'relaxed'
+                    ]
+                );
+            }
+        }
 
         /**
          * Shortcode handler:

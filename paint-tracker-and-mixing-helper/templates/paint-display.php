@@ -200,11 +200,11 @@ $container_class_attr = implode( ' ', array_map( 'sanitize_html_class', $contain
                                 if ( ! $url ) {
                                     continue;
                                 }
-
+                                
                                 if ( '' === $ltitle ) {
                                     if ( $total_links > 1 ) {
-                                        /* translators: %d: index number of this paint link. */
                                         $ltitle = sprintf(
+                                            /* translators: %d: index number of this paint link. */
                                             __( 'View %d', 'paint-tracker-and-mixing-helper' ),
                                             $i + 1
                                         );

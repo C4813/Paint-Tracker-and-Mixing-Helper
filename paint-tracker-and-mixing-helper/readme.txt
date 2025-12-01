@@ -2,11 +2,12 @@
 Contributors: C4813
 Tags: paint, colours, mixing, miniature, hobby
 Requires at least: 6.0
-Tested up to: 6.7
+Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.10.1
+Stable tag: 0.10.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Hobby paint tracker and mixing/shading helper for miniature painting.
 
 == Description ==
 

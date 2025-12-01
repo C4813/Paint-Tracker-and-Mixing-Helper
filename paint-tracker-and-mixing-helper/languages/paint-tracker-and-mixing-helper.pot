@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Paint Tracker and Mixing Helper 0.10.3\n"
+"Project-Id-Version: Paint Tracker and Mixing Helper\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-25 00:00+0000\n"
+"POT-Creation-Date: 2025-12-01 13:33+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: \n"
@@ -10,375 +10,658 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: ChatGPT\n"
+"X-Generator: ChatGPT POT builder\n"
 "X-Domain: paint-tracker-and-mixing-helper\n"
 
-msgid "Paint Colours"
-msgstr ""
-
-msgid "Paint Colour"
-msgstr ""
-
-msgid "Add New Paint Colour"
-msgstr ""
-
-msgid "Edit Paint Colour"
-msgstr ""
-
-msgid "Paint Ranges"
-msgstr ""
-
-msgid "Paint Range"
-msgstr ""
-
-msgid "Paint Details"
-msgstr ""
-
-msgid "Number"
-msgstr ""
-
-msgid "Hex"
-msgstr ""
-
-msgid "On Shelf?"
-msgstr ""
-
-msgid "Title"
-msgstr ""
-
-msgid "Import Paints from CSV"
-msgstr ""
-
-msgid "Import from CSV"
-msgstr ""
-
-msgid "Export Paints to CSV"
-msgstr ""
-
-msgid "Export to CSV"
-msgstr ""
-
-msgid "Info & Settings"
-msgstr ""
-
-msgid "No paints found."
-msgstr ""
-
-msgid "No paint ranges found."
-msgstr ""
-
-msgid "No paints found for mixing."
-msgstr ""
-
-msgid "No paint ranges found for shade helper."
-msgstr ""
-
-msgid "No paints found for shade helper."
-msgstr ""
-
-msgid "Settings saved."
-msgstr ""
-
-msgid "You do not have permission to access this page."
-msgstr ""
-
-msgid "Please choose a paint range."
-msgstr ""
-
-msgid "Please upload a CSV file."
-msgstr ""
-
-#, php-format
-msgid "Imported %d paints."
-msgstr ""
-
-msgid "CSV file is missing or not readable."
-msgstr ""
-
-msgid "Unable to open CSV file."
-msgstr ""
-
-msgid "CSV file is empty."
-msgstr ""
-
-msgid "View %d"
-msgstr ""
-
-msgid "View"
-msgstr ""
-
-msgid "Add another link"
-msgstr ""
-
-msgid "Link Title"
-msgstr ""
-
-msgid "Link URL"
-msgstr ""
-
-msgid "Paint number"
-msgstr ""
-
-msgid "Hex colour"
-msgstr ""
-
-msgid "On the shelf"
-msgstr ""
-
-msgid "Yes, I currently have this paint on my shelf"
-msgstr ""
-
-msgid "Linked posts / URLs"
-msgstr ""
-
-msgid "Link title"
-msgstr ""
-
-msgid "e.g. Tutorial, Review, Example Build"
-msgstr ""
-
-msgid "Remove link"
-msgstr ""
-
-msgid "Upload a CSV file to automatically create paints in a specific range."
-msgstr ""
-
-msgid "Expected format (per row): name, number, hex colour, on shelf (yes/no, optional)."
-msgstr ""
-
-msgid "Paint range"
-msgstr ""
-
-msgid "Select a range"
-msgstr ""
-
-msgid "CSV file"
-msgstr ""
-
-msgid "Import paints"
-msgstr ""
-
-msgid "What this plugin does"
-msgstr ""
-
-msgid ""
-"Paint Tracker and Mixing Helper helps you keep a structured list of your "
-"miniature paints, track which ones you currently own, link each paint to "
-"useful resources, and provide interactive colour tools on the front end."
-msgstr ""
-
-msgid "How the data is stored"
-msgstr ""
-
-msgid ""
-"The plugin adds a custom post type called “Paint Colours” and a taxonomy "
-"called “Paint Ranges”."
-msgstr ""
-
-msgid ""
-"each paint has a name (title), a paint number, a hex colour, an “On the "
-"shelf” flag, and optional links (tutorials, reviews, example builds, etc.)."
-msgstr ""
-
-msgid ""
-"group paints into ranges such as Vallejo Model Color, Vallejo Game Color, "
-"and so on."
-msgstr ""
-
-msgid "Shortcodes"
-msgstr ""
-
-msgid "[paint_table]"
-msgstr ""
-
-msgid "Displays a table of paints, optionally filtered to a single paint range."
-msgstr ""
-
-msgid "Attributes:"
-msgstr ""
-
-msgid "taxonomy slug of the paint range (optional)."
-msgstr ""
-
-msgid "number of paints to show (-1 shows all)."
-msgstr ""
-
-msgid "either \"meta_number\" (paint number) or \"title\"."
-msgstr ""
-
+#: admin/admin-page.php:372
 msgid "\"yes\" to show only paints marked as on shelf, or \"any\" to show all paints."
 msgstr ""
 
-msgid "Example:"
+#: admin/admin-page.php:40
+#: admin/quick-edit-fields.php:45
+msgid "Acrylic"
 msgstr ""
 
-msgid "Paint table display"
+#: paint-tracker-and-mixing-helper.php:89
+msgid "Add New Paint Colour"
 msgstr ""
 
-msgid ""
-"Use the option below to choose whether the paint table shows small colour "
-"dots (swatches) or highlights the entire row with the paint colour."
+#: admin/admin-page.php:135
+#: paint-tracker-and-mixing-helper.php:506
+msgid "Add another link"
 msgstr ""
 
-msgid "Show colour dots (swatch column)"
+#: admin/admin-page.php:325
+msgid "Add paints under “Paint Colours → Add New” and assign each paint to the appropriate range."
 msgstr ""
 
-msgid "Highlight the entire row with the paint colour"
-msgstr ""
-
-msgid ""
-"Row highlighting applies the paint colour to the whole row and adjusts text "
-"to light/dark for readability."
-msgstr ""
-
-msgid "[mixing-helper]"
-msgstr ""
-
-msgid ""
-"Shows the two-paint mixing tool. You can pick two paints, set how many "
-"parts of each to mix, and see the resulting colour and hex value."
-msgstr ""
-
-msgid ""
-"Each paint dropdown can be filtered by range so you can quickly find the "
-"colours you want to mix."
-msgstr ""
-
-msgid "[shade-helper]"
-msgstr ""
-
-msgid ""
-"Shows the shade helper as a standalone tool. Choose a paint and the plugin "
-"will look for the darkest and lightest paints in the same range, then build "
-"a small ladder of lighter and darker mixes using those anchor colours."
-msgstr ""
-
-msgid ""
-"If a visitor arrives from the paint table by clicking a swatch or row, the "
-"shade helper can start with that colour already selected."
-msgstr ""
-
-msgid "Shading page URL"
-msgstr ""
-
-msgid ""
-"This setting tells the plugin where your Shade helper page lives. It should "
-"be the URL of the page where you are using the [shade-helper] shortcode."
-msgstr ""
-
-msgid ""
-"When this URL is set, the colour swatches (or highlighted rows, if you use "
-"row mode) in your [paint_table] output become links. Clicking them will take "
-"the visitor to your Shade helper page and automatically pass the clicked "
-"colour so that the ladder is built around that paint."
-msgstr ""
-
-msgid ""
-"If you leave this field empty, the swatches/rows remain as simple colour "
-"indicators and are not clickable."
-msgstr ""
-
-msgid "Enter the URL of the page where you are using the [shade-helper] shortcode."
-msgstr ""
-
-msgid "Importing paints from CSV"
-msgstr ""
-
-msgid ""
-"Under “Paint Colours → Import from CSV” you can bulk-create paints from a "
-"CSV file."
-msgstr ""
-
-msgid "Choose the paint range that the new paints should be assigned to."
-msgstr ""
-
-msgid "Upload a CSV file with one paint per row."
-msgstr ""
-
-msgid "Expected columns (per row):"
-msgstr ""
-
-msgid "title – paint name"
-msgstr ""
-
-msgid "number – paint number (optional)"
-msgstr ""
-
-msgid "hex – hex colour, e.g. #2f353a or 2f353a"
-msgstr ""
-
-msgid "on_shelf – 0 or 1 (optional)"
-msgstr ""
-
-msgid ""
-"An optional header row with column names (title, number, hex, on_shelf) is "
-"supported and will be detected automatically."
-msgstr ""
-
-msgid "Exporting paints to CSV"
-msgstr ""
-
-msgid ""
-"Under “Paint Colours → Export to CSV” you can download your paint collection "
-"as a CSV file."
-msgstr ""
-
-msgid "Filter by paint range."
-msgstr ""
-
-msgid "Optionally limit the export to paints marked as on shelf."
-msgstr ""
-
-msgid "Exported columns:"
-msgstr ""
-
-msgid "number – paint number"
-msgstr ""
-
-msgid "hex – hex colour"
-msgstr ""
-
-msgid "on_shelf – 0 or 1"
-msgstr ""
-
-msgid "ranges – list of range names (pipe-separated if more than one)."
-msgstr ""
-
-msgid "Mixing helper"
-msgstr ""
-
-msgid "Paint 1"
-msgstr ""
-
-msgid "Range"
-msgstr ""
-
+#: templates/mixing-helper.php:142
+#: templates/mixing-helper.php:150
+#: templates/mixing-helper.php:77
+#: templates/mixing-helper.php:85
+#: templates/shade-helper.php:79
+#: templates/shade-helper.php:87
 msgid "All"
 msgstr ""
 
-msgid "Paint"
+#: admin/admin-page.php:247
+msgid "All ranges"
 msgstr ""
 
-msgid "Select a paint"
+#: admin/admin-page.php:528
+msgid "An optional header row with column names is allowed and will be detected automatically. The plugin expects the columns in the order shown above."
 msgstr ""
 
-msgid "Parts"
+#: admin/admin-page.php:367
+msgid "Attributes:"
 msgstr ""
 
-msgid "Paint 2"
+#: admin/admin-page.php:32
+#: admin/bulk-edit-fields.php:39
+#: admin/quick-edit-fields.php:41
+#: paint-tracker-and-mixing-helper.php:1531
+msgid "Base type"
 msgstr ""
 
-msgid "Result"
+#: admin/admin-page.php:195
+msgid "CSV file"
 msgstr ""
 
-msgid "Shade helper"
+#: paint-tracker-and-mixing-helper.php:1311
+msgid "CSV file is empty."
 msgstr ""
 
-msgid "Select a paint to see lighter and darker mixes."
+#: paint-tracker-and-mixing-helper.php:1296
+msgid "CSV file is missing or not readable."
 msgstr ""
 
+#: admin/admin-page.php:516
+msgid "Choose the paint range that the new paints should be assigned to."
+msgstr ""
+
+#: admin/quick-edit-fields.php:13
+#: paint-tracker-and-mixing-helper.php:1529
+#: templates/paint-display.php:89
+msgid "Code / Type"
+msgstr ""
+
+#: templates/paint-display.php:88
 msgid "Colour"
 msgstr ""
 
+#: paint-tracker-and-mixing-helper.php:610
+msgid "Could not determine the selected paint in this range."
+msgstr ""
+
+#: admin/admin-page.php:324
+msgid "Create one or more paint ranges under “Paint Colours → Paint Ranges” (for example: Vallejo Model Color, Citadel Layer)."
+msgstr ""
+
+#: admin/admin-page.php:327
+msgid "Create pages that use the shortcodes below, for example a main paint list page and separate pages for the mixing and shading helpers."
+msgstr ""
+
+#: admin/admin-page.php:362
+msgid "Displays a table of paints, optionally limited to a single paint range."
+msgstr ""
+
+#: admin/admin-page.php:290
+msgid "Download CSV"
+msgstr ""
+
+#: admin/admin-page.php:214
+msgid "Download your paint collection as a CSV file you can open in Excel, Numbers, or Google Sheets."
+msgstr ""
+
+#: admin/admin-page.php:435
+msgid "Each paint dropdown can be filtered by range so you can quickly find the paints you want to mix. Base type is respected: paints with incompatible base types (for example acrylic vs enamel) cannot be mixed and will show a warning instead."
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:90
+msgid "Edit Paint Colour"
+msgstr ""
+
+#: admin/admin-page.php:43
+#: admin/quick-edit-fields.php:46
+msgid "Enamel"
+msgstr ""
+
+#: admin/admin-page.php:496
+msgid "Enter the URL of the page that contains your [shade-helper] shortcode."
+msgstr ""
+
+#: admin/admin-page.php:375
+msgid "Example:"
+msgstr ""
+
+#: admin/bulk-edit-fields.php:30
+msgid "Exclude from shading"
+msgstr ""
+
+#: admin/admin-page.php:81
+#: admin/quick-edit-fields.php:34
+msgid "Exclude from shading helper"
+msgstr ""
+
+#: admin/admin-page.php:519
+msgid "Expected columns (per row):"
+msgstr ""
+
+#: admin/admin-page.php:165
+msgid "Expected format (per row): title, code / type (70.861 / Layer), hex colour, base type (acrylic/enamel/oil/lacquer), on shelf (0/1, optional; 1 = yes, 0 = no)."
+msgstr ""
+
+#: admin/admin-page.php:211
+#: paint-tracker-and-mixing-helper.php:1104
+msgid "Export Paints to CSV"
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:1105
+msgid "Export to CSV"
+msgstr ""
+
+#: admin/admin-page.php:547
+msgid "Exported columns:"
+msgstr ""
+
+#: admin/admin-page.php:536
+msgid "Exporting paints to CSV"
+msgstr ""
+
+#: admin/admin-page.php:544
+msgid "Filter by paint range."
+msgstr ""
+
+#: admin/admin-page.php:326
+msgid "For each paint, fill in the paint code / type, hex colour, base type, and whether it is on your shelf."
+msgstr ""
+
+#: admin/quick-edit-fields.php:20
+#: paint-tracker-and-mixing-helper.php:1530
+msgid "Hex"
+msgstr ""
+
+#: admin/admin-page.php:56
+msgid "Hex colour"
+msgstr ""
+
+#: admin/admin-page.php:411
+msgid "Highlight the entire row with the paint colour."
+msgstr ""
+
+#: admin/admin-page.php:332
+msgid "How the data is stored"
+msgstr ""
+
+#: admin/admin-page.php:451
+msgid "If a visitor arrives from the paint table by clicking a swatch or row, the shade helper can start with that paint already selected."
+msgstr ""
+
+#: admin/admin-page.php:471
+msgid "If you leave this field empty, the dots/rows are shown but are not clickable."
+msgstr ""
+
+#: admin/admin-page.php:143
+#: paint-tracker-and-mixing-helper.php:1090
+msgid "Import Paints from CSV"
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:1091
+msgid "Import from CSV"
+msgstr ""
+
+#: admin/admin-page.php:203
+msgid "Import paints"
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:1225
+#. translators: %d: number of paints imported
+msgid "Imported %d paints."
+msgstr ""
+
+#: admin/admin-page.php:508
+msgid "Importing paints from CSV"
+msgstr ""
+
+#: admin/bulk-edit-fields.php:31
+msgid "Include in shading"
+msgstr ""
+
+#: admin/admin-page.php:299
+#: paint-tracker-and-mixing-helper.php:1118
+#: paint-tracker-and-mixing-helper.php:1119
+msgid "Info & Settings"
+msgstr ""
+
+#: admin/admin-page.php:49
+#: admin/quick-edit-fields.php:48
+msgid "Lacquer"
+msgstr ""
+
+#: admin/admin-page.php:241
+msgid "Limit to range"
+msgstr ""
+
+#: admin/admin-page.php:116
+#: paint-tracker-and-mixing-helper.php:509
+msgid "Link URL"
+msgstr ""
+
+#: admin/admin-page.php:106
+#: paint-tracker-and-mixing-helper.php:507
+msgid "Link title"
+msgstr ""
+
+#: admin/admin-page.php:85
+msgid "Linked posts / URLs"
+msgstr ""
+
+#: templates/mixing-helper.php:60
+msgid "Mixing helper"
+msgstr ""
+
+#: templates/paint-display.php:90
 msgid "Models"
+msgstr ""
+
+#: templates/paint-display.php:102
+msgid "No colour hex"
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:878
+msgid "No paint ranges found for shade helper."
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:753
+msgid "No paint ranges found."
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:769
+#: paint-tracker-and-mixing-helper.php:822
+msgid "No paints found for mixing."
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:904
+#: paint-tracker-and-mixing-helper.php:956
+msgid "No paints found for shade helper."
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:688
+msgid "No paints found."
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:614
+msgid "Not enough darker paints to generate darker mixes."
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:615
+msgid "Not enough lighter paints to generate lighter mixes."
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:612
+msgid "Not enough paints in this range to build a shade ladder."
+msgstr ""
+
+#: admin/bulk-edit-fields.php:18
+msgid "Not on shelf"
+msgstr ""
+
+#: admin/admin-page.php:46
+#: admin/quick-edit-fields.php:47
+msgid "Oil"
+msgstr ""
+
+#: admin/bulk-edit-fields.php:13
+#: admin/quick-edit-fields.php:27
+#: paint-tracker-and-mixing-helper.php:1532
+msgid "On Shelf?"
+msgstr ""
+
+#: admin/bulk-edit-fields.php:17
+msgid "On shelf"
+msgstr ""
+
+#: admin/admin-page.php:71
+msgid "On the shelf"
+msgstr ""
+
+#: admin/admin-page.php:278
+msgid "Only export paints marked as “On the shelf”."
+msgstr ""
+
+#: admin/admin-page.php:269
+msgid "Only paints on shelf"
+msgstr ""
+
+#: admin/admin-page.php:258
+msgid "Optional: only export paints from a single paint range."
+msgstr ""
+
+#: admin/admin-page.php:545
+msgid "Optionally limit the export to paints marked as on shelf."
+msgstr ""
+
+#: admin/admin-page.php:314
+msgid "Overview"
+msgstr ""
+
+#: templates/mixing-helper.php:100
+#: templates/mixing-helper.php:165
+#: templates/shade-helper.php:102
+msgid "Paint"
+msgstr ""
+
+#: templates/mixing-helper.php:67
+msgid "Paint 1"
+msgstr ""
+
+#: templates/mixing-helper.php:132
+msgid "Paint 2"
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:88
+msgid "Paint Colour"
+msgstr ""
+
+#: admin/admin-page.php:341
+#: paint-tracker-and-mixing-helper.php:87
+msgid "Paint Colours"
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:123
+msgid "Paint Details"
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:107
+msgid "Paint Range"
+msgstr ""
+
+#: admin/admin-page.php:348
+#: paint-tracker-and-mixing-helper.php:106
+msgid "Paint Ranges"
+msgstr ""
+
+#: admin/admin-page.php:316
+msgid "Paint Tracker and Mixing Helper keeps a structured list of your miniature paints and gives you three main tools on the front end: a searchable paint table, a two-paint mixing helper, and a shading helper for picking highlight and shadow colours."
+msgstr ""
+
+#: admin/admin-page.php:22
+msgid "Paint code / type"
+msgstr ""
+
+#: admin/admin-page.php:177
+msgid "Paint range"
+msgstr ""
+
+#: admin/admin-page.php:379
+#: admin/admin-page.php:394
+msgid "Paint table display"
+msgstr ""
+
+#: templates/mixing-helper.php:119
+#: templates/mixing-helper.php:184
+msgid "Parts"
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:1198
+msgid "Please choose a paint range."
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:1202
+msgid "Please upload a CSV file."
+msgstr ""
+
+#: admin/admin-page.php:322
+msgid "Quick start"
+msgstr ""
+
+#: templates/mixing-helper.php:138
+#: templates/mixing-helper.php:73
+#: templates/shade-helper.php:75
+msgid "Range"
+msgstr ""
+
+#: admin/admin-page.php:126
+#: paint-tracker-and-mixing-helper.php:511
+msgid "Remove link"
+msgstr ""
+
+#: templates/mixing-helper.php:198
+msgid "Result"
+msgstr ""
+
+#: admin/admin-page.php:414
+msgid "Row highlighting still keeps text legible by choosing light or dark text automatically."
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:1277
+#: paint-tracker-and-mixing-helper.php:1282
+msgid "Security check failed."
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:586
+#: templates/mixing-helper.php:105
+#: templates/mixing-helper.php:170
+#: templates/shade-helper.php:107
+msgid "Select a paint"
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:608
+msgid "Select a paint to generate lighter and darker mixes."
+msgstr ""
+
+#: templates/shade-helper.php:126
+#: templates/shade-helper.php:136
+msgid "Select a paint to see lighter and darker mixes."
+msgstr ""
+
+#: admin/admin-page.php:187
+msgid "Select a range"
+msgstr ""
+
+#: admin/admin-page.php:37
+msgid "Select base type…"
+msgstr ""
+
+#: admin/bulk-edit-fields.php:43
+msgid "Set to Acrylic"
+msgstr ""
+
+#: admin/bulk-edit-fields.php:44
+msgid "Set to Enamel"
+msgstr ""
+
+#: admin/bulk-edit-fields.php:46
+msgid "Set to Lacquer"
+msgstr ""
+
+#: admin/bulk-edit-fields.php:45
+msgid "Set to Oil"
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:1167
+msgid "Settings saved."
+msgstr ""
+
+#: admin/bulk-edit-fields.php:26
+#: templates/shade-helper.php:67
+msgid "Shade helper"
+msgstr ""
+
+#: admin/admin-page.php:457
+#: admin/admin-page.php:485
+msgid "Shading page URL"
+msgstr ""
+
+#: admin/admin-page.php:358
+msgid "Shortcodes"
+msgstr ""
+
+#: admin/admin-page.php:403
+msgid "Show colour dots (swatch column)."
+msgstr ""
+
+#: admin/admin-page.php:445
+msgid "Shows the shade helper as a standalone tool. Choose a paint and the plugin will look for suitable darker and lighter colours to use as shadow and highlight."
+msgstr ""
+
+#: admin/admin-page.php:429
+msgid "Shows the two-paint mixing tool. Choose two paints, set percentages, and the helper will calculate the mixed colour and hex value."
+msgstr ""
+
+#: admin/admin-page.php:334
+msgid "The plugin adds a custom post type called “Paint Colours” and a taxonomy called “Paint Ranges”."
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:609
+msgid "This colour has an invalid hex value."
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:611
+msgid "This paint is not assigned to a range."
+msgstr ""
+
+#: admin/admin-page.php:459
+msgid "This setting tells the plugin where your dedicated shading helper page lives. It should be the URL of the page where you placed the [shade-helper] shortcode."
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:1526
+msgid "Title"
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:613
+msgid "Unable to generate mixes for this colour."
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:1301
+msgid "Unable to open CSV file."
+msgstr ""
+
+#: admin/admin-page.php:538
+msgid "Under “Paint Colours → Export to CSV” you can download your paints for backup, analysis, or editing in a spreadsheet."
+msgstr ""
+
+#: admin/admin-page.php:510
+msgid "Under “Paint Colours → Import from CSV” you can bulk-create paints from a CSV file instead of adding them one by one."
+msgstr ""
+
+#: admin/admin-page.php:162
+msgid "Upload a CSV file to automatically create paints in a specific range."
+msgstr ""
+
+#: admin/admin-page.php:517
+msgid "Upload a CSV file with one paint per row."
+msgstr ""
+
+#: admin/admin-page.php:381
+msgid "Use this option to control how the paint colour is shown in the table. The setting below applies to all [paint_table] shortcodes."
+msgstr ""
+
+#: templates/paint-display.php:212
+msgid "View"
+msgstr ""
+
+#: templates/paint-display.php:208
+#. translators: %d: index number of this paint link.
+msgid "View %d"
+msgstr ""
+
+#: admin/admin-page.php:465
+msgid "When this URL is set, the colour dots/rows in the paint table become links. Clicking them will take the visitor to your Shade helper page and pre-select that paint."
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:1133
+#: paint-tracker-and-mixing-helper.php:1187
+#: paint-tracker-and-mixing-helper.php:1260
+msgid "You do not have permission to access this page."
+msgstr ""
+
+#: paint-tracker-and-mixing-helper.php:1273
+msgid "You do not have permission to export paints."
+msgstr ""
+
+#: admin/admin-page.php:427
+msgid "[mixing-helper]"
+msgstr ""
+
+#: admin/admin-page.php:360
+msgid "[paint_table]"
+msgstr ""
+
+#: admin/admin-page.php:443
+msgid "[shade-helper]"
+msgstr ""
+
+#: admin/admin-page.php:524
+#: admin/admin-page.php:552
+msgid "base_type – base type for the paint (for example: acrylic, enamel, oil, lacquer)."
+msgstr ""
+
+#: admin/admin-page.php:111
+#: paint-tracker-and-mixing-helper.php:508
+msgid "e.g. Tutorial, Review, Example Build"
+msgstr ""
+
+#: admin/admin-page.php:342
+msgid "each paint has a title (name), an optional paint code / type, a hex colour, a base type (for mixing compatibility), an “on shelf” flag, and optional external links (manufacturer site, reviews, example builds, etc.)."
+msgstr ""
+
+#: admin/admin-page.php:371
+msgid "either \"meta_number\" (paint code / type) or \"title\"."
+msgstr ""
+
+#: admin/admin-page.php:349
+msgid "group paints into ranges such as Vallejo Model Color, Vallejo Game Color, Citadel Base, and so on. Ranges are used for filtering on the front end and for CSV import/export."
+msgstr ""
+
+#: admin/admin-page.php:551
+msgid "hex – hex colour"
+msgstr ""
+
+#: admin/admin-page.php:523
+msgid "hex – hex colour, e.g. #2f353a or 2f353a"
+msgstr ""
+
+#: admin/admin-page.php:370
+msgid "number of paints to show (-1 shows all)."
+msgstr ""
+
+#: admin/admin-page.php:550
+msgid "number – paint number"
+msgstr ""
+
+#: admin/admin-page.php:522
+msgid "number – paint number (optional)"
+msgstr ""
+
+#: admin/admin-page.php:553
+msgid "on_shelf – 0 or 1"
+msgstr ""
+
+#: admin/admin-page.php:525
+msgid "on_shelf – 0 or 1 to indicate whether the paint is on your shelf."
+msgstr ""
+
+#: admin/admin-page.php:554
+msgid "ranges – list of range names for the paint (separated by a pipe character \"|\", if more than one)."
+msgstr ""
+
+#: admin/admin-page.php:33
+msgid "required"
+msgstr ""
+
+#: admin/admin-page.php:369
+msgid "taxonomy slug of the paint range (optional)."
+msgstr ""
+
+#: admin/admin-page.php:521
+#: admin/admin-page.php:549
+msgid "title – paint name"
+msgstr ""
+
+#: admin/bulk-edit-fields.php:16
+#: admin/bulk-edit-fields.php:29
+#: admin/bulk-edit-fields.php:42
+#: admin/quick-edit-fields.php:44
+msgid "— No change —"
 msgstr ""

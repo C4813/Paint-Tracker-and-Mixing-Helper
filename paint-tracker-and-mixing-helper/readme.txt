@@ -4,7 +4,7 @@ Tags: paint, colours, mixing, miniature, hobby
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.10.3
+Stable tag: 0.10.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Hobby paint tracker and mixing/shading helper for miniature painting.
@@ -120,4 +120,5 @@ Yes — override `public/css/style.css` in your theme.
 == License ==
 
 GPLv2 or later.
+
 

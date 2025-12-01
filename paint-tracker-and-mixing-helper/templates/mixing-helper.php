@@ -19,9 +19,11 @@ if ( ! isset( $pct_ranges, $pct_paints ) || empty( $pct_ranges ) || empty( $pct_
 $pct_ranges_by_parent = [];
 foreach ( $pct_ranges as $range ) {
     $parent_id = (int) $range->parent;
+
     if ( ! isset( $pct_ranges_by_parent[ $parent_id ] ) ) {
         $pct_ranges_by_parent[ $parent_id ] = [];
     }
+
     $pct_ranges_by_parent[ $parent_id ][] = $range;
 }
 
@@ -47,7 +49,6 @@ if ( ! function_exists( 'pct_render_range_options_hierarchical' ) ) {
                 </span>
             </div>
             <?php
-            // Recurse into children
             pct_render_range_options_hierarchical( (int) $term->term_id, $map, $depth + 1 );
         }
     }
@@ -64,7 +65,9 @@ if ( ! function_exists( 'pct_render_range_options_hierarchical' ) ) {
         <!-- Left column -->
         <div class="pct-mix-column pct-mix-column-left">
             <div class="pct-mix-field">
-                <label><strong><?php esc_html_e( 'Paint 1', 'paint-tracker-and-mixing-helper' ); ?></strong></label>
+                <label>
+                    <strong><?php esc_html_e( 'Paint 1', 'paint-tracker-and-mixing-helper' ); ?></strong>
+                </label>
             </div>
 
             <!-- Range dropdown (custom) -->
@@ -86,7 +89,6 @@ if ( ! function_exists( 'pct_render_range_options_hierarchical' ) ) {
                                 </span>
                             </div>
                             <?php
-                            // Top-level parents (parent_id = 0)
                             pct_render_range_options_hierarchical( 0, $pct_ranges_by_parent );
                             ?>
                         </div>
@@ -118,10 +120,10 @@ if ( ! function_exists( 'pct_render_range_options_hierarchical' ) ) {
                 <label>
                     <?php esc_html_e( 'Parts', 'paint-tracker-and-mixing-helper' ); ?><br>
                     <input type="number"
-                        class="pct-mix-parts pct-mix-parts-left"
-                        min="1"
-                        step="1"
-                        value="1">
+                           class="pct-mix-parts pct-mix-parts-left"
+                           min="1"
+                           step="1"
+                           value="1">
                 </label>
             </div>
         </div>
@@ -129,7 +131,9 @@ if ( ! function_exists( 'pct_render_range_options_hierarchical' ) ) {
         <!-- Right column -->
         <div class="pct-mix-column pct-mix-column-right">
             <div class="pct-mix-field">
-                <label><strong><?php esc_html_e( 'Paint 2', 'paint-tracker-and-mixing-helper' ); ?></strong></label>
+                <label>
+                    <strong><?php esc_html_e( 'Paint 2', 'paint-tracker-and-mixing-helper' ); ?></strong>
+                </label>
             </div>
 
             <!-- Range dropdown (custom) -->
@@ -151,7 +155,6 @@ if ( ! function_exists( 'pct_render_range_options_hierarchical' ) ) {
                                 </span>
                             </div>
                             <?php
-                            // Same hierarchical list on the right side
                             pct_render_range_options_hierarchical( 0, $pct_ranges_by_parent );
                             ?>
                         </div>
@@ -183,10 +186,10 @@ if ( ! function_exists( 'pct_render_range_options_hierarchical' ) ) {
                 <label>
                     <?php esc_html_e( 'Parts', 'paint-tracker-and-mixing-helper' ); ?><br>
                     <input type="number"
-                        class="pct-mix-parts pct-mix-parts-right"
-                        min="1"
-                        step="1"
-                        value="1">
+                           class="pct-mix-parts pct-mix-parts-right"
+                           min="1"
+                           step="1"
+                           value="1">
                 </label>
             </div>
         </div>
@@ -204,5 +207,4 @@ if ( ! function_exists( 'pct_render_range_options_hierarchical' ) ) {
 
         <div class="pct-mix-result-swatch"></div>
     </div>
-
 </div><!-- /.pct-mix-container -->

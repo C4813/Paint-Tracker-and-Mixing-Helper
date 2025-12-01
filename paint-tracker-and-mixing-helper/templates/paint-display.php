@@ -14,24 +14,25 @@ if ( ! isset( $pct_paints ) || ! is_array( $pct_paints ) || empty( $pct_paints )
 }
 
 // ---- Small helpers for row mode ----
-
 if ( ! function_exists( 'pct_hex_to_rgb_for_table' ) ) {
     function pct_hex_to_rgb_for_table( $hex ) {
         if ( ! $hex ) {
             return null;
         }
+
         $hex = trim( (string) $hex );
         $hex = ltrim( $hex, '#' );
 
         if ( strlen( $hex ) === 3 ) {
             $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
         }
+
         if ( strlen( $hex ) !== 6 ) {
             return null;
         }
 
         $int = hexdec( $hex );
-        
+
         return [
             'r' => ( $int >> 16 ) & 255,
             'g' => ( $int >> 8 ) & 255,
@@ -48,17 +49,18 @@ if ( ! function_exists( 'pct_text_color_for_hex_for_table' ) ) {
         }
 
         $lum = ( 0.299 * $rgb['r'] + 0.587 * $rgb['g'] + 0.114 * $rgb['b'] ) / 255;
+
         return ( $lum < 0.5 ) ? '#f9fafb' : '#111827';
     }
 }
 
-// Determine mode (fallback to dots)
+// Determine mode (fallback to dots).
 $display_mode = isset( $pct_table_display_mode ) ? $pct_table_display_mode : 'dots';
 if ( 'rows' !== $display_mode ) {
     $display_mode = 'dots';
 }
 
-// Build container classes
+// Build container classes.
 $container_classes = [
     'pct-table-container',
     'pct-table-mode-' . $display_mode,
@@ -91,143 +93,139 @@ $container_class_attr = implode( ' ', array_map( 'sanitize_html_class', $contain
                 </tr>
             </thead>
             <tbody>
-            <?php foreach ( $pct_paints as $paint ) :
-                $id     = isset( $paint['id'] )     ? (int) $paint['id'] : 0;
-                $name   = isset( $paint['name'] )   ? $paint['name']    : '';
-                $number = isset( $paint['number'] ) ? $paint['number']  : '';
-                $hex    = isset( $paint['hex'] )    ? $paint['hex']     : '';
-                $links  = isset( $paint['links'] )  && is_array( $paint['links'] )
-                    ? $paint['links']
-                    : [];
-                $no_hex_label = __( 'No colour hex', 'paint-tracker-and-mixing-helper' );
+                <?php foreach ( $pct_paints as $paint ) :
+                    $id     = isset( $paint['id'] ) ? (int) $paint['id'] : 0;
+                    $name   = isset( $paint['name'] ) ? $paint['name'] : '';
+                    $number = isset( $paint['number'] ) ? $paint['number'] : '';
+                    $hex    = isset( $paint['hex'] ) ? $paint['hex'] : '';
+                    $links  = ( isset( $paint['links'] ) && is_array( $paint['links'] ) ) ? $paint['links'] : [];
+                    $no_hex_label = __( 'No colour hex', 'paint-tracker-and-mixing-helper' );
 
-                // Build shade helper URL if one is configured.
-                // Rows with no hex should NOT be clickable in row-highlight mode,
-                // so we only generate a URL when a hex value exists.
-                $shade_url = '';
-                if ( ! empty( $pct_mixing_page_url ) && $hex && ( $id || $hex ) ) {
-                    $args = [];
+                    // Build shade helper URL if one is configured.
+                    // Rows with no hex should NOT be clickable in row-highlight mode,
+                    // so we only generate a URL when a hex value exists.
+                    $shade_url = '';
+                    if ( ! empty( $pct_mixing_page_url ) && $hex && ( $id || $hex ) ) {
+                        $args = [];
 
-                    if ( $id ) {
-                        $args['pct_shade_id'] = $id;
+                        if ( $id ) {
+                            $args['pct_shade_id'] = $id;
+                        }
+
+                        if ( $hex ) {
+                            // Drop any leading '#' so it doesn't become a fragment.
+                            $args['pct_shade_hex'] = ltrim( $hex, '#' );
+                        }
+
+                        if ( ! empty( $args ) ) {
+                            $shade_url = add_query_arg(
+                                $args,
+                                $pct_mixing_page_url
+                            );
+                        }
                     }
 
-                    if ( $hex ) {
-                        // Drop any leading '#' so it doesn't become a fragment.
-                        $args['pct_shade_hex'] = ltrim( $hex, '#' );
-                    }
+                    $row_style   = '';
+                    $row_classes = [];
 
-                    if ( ! empty( $args ) ) {
-                        $shade_url = add_query_arg(
-                            $args,
-                            $pct_mixing_page_url
+                    // Row colouring in "rows" mode if we have a hex.
+                    if ( 'rows' === $display_mode && $hex ) {
+                        $bg_color   = $hex;
+                        $text_color = pct_text_color_for_hex_for_table( $hex );
+                        $row_style  = sprintf(
+                            'background-color:%1$s; color:%2$s;',
+                            $bg_color,
+                            $text_color
                         );
                     }
-                }
 
-                $row_style   = '';
-                $row_classes = [];
-                
-                // Row colouring in "rows" mode if we have a hex
-                if ( 'rows' === $display_mode && $hex ) {
-                    $bg_color   = $hex;
-                    $text_color = pct_text_color_for_hex_for_table( $hex );
-                    $row_style  = sprintf(
-                        'background-color:%1$s; color:%2$s;',
-                        $bg_color,
-                        $text_color
-                    );
-                }
-                
-                // Make entire row clickable in row-highlight mode when we have a shade URL.
-                if ( 'rows' === $display_mode && $shade_url ) {
-                    $row_classes[] = 'pct-row-clickable';
-                }
-                
-                // Mark rows with no hex so we can style them differently
-                if ( 'rows' === $display_mode && ! $hex ) {
-                    $row_classes[] = 'pct-row-no-hex';
-                }
-                ?>
-                <tr
-                    <?php if ( ! empty( $row_classes ) ) : ?>
-                        class="<?php echo esc_attr( implode( ' ', $row_classes ) ); ?>"
-                    <?php endif; ?>
-                    <?php if ( $row_style ) : ?>
-                        style="<?php echo esc_attr( $row_style ); ?>"
-                    <?php endif; ?>
-                    <?php if ( 'rows' === $display_mode && $shade_url ) : ?>
-                        data-shade-url="<?php echo esc_url( $shade_url ); ?>"
-                    <?php endif; ?>
-                >
+                    // Make entire row clickable in row-highlight mode when we have a shade URL.
+                    if ( 'rows' === $display_mode && $shade_url ) {
+                        $row_classes[] = 'pct-row-clickable';
+                    }
 
-                    <?php if ( 'dots' === $display_mode ) : ?>
-                        <td class="pct-swatch-cell">
-                            <?php if ( $hex ) : ?>
-
-                                <?php if ( $shade_url ) : ?>
-                                    <a href="<?php echo esc_url( $shade_url ); ?>" class="pct-swatch-link">
-                                        <span class="pct-swatch" style="background-color: <?php echo esc_attr( $hex ); ?>"></span>
-                                    </a>
-                                <?php else : ?>
-                                    <span class="pct-swatch" style="background-color: <?php echo esc_attr( $hex ); ?>"></span>
-                                <?php endif; ?>
-                            <?php endif; ?>
-                        </td>
-                    <?php endif; ?>
-
-                    <td
-                        class="pct-name-cell<?php echo ( 'rows' === $display_mode && ! $hex ) ? ' pct-no-hex-cell' : ''; ?>"
-                        <?php if ( 'rows' === $display_mode && ! $hex ) : ?>
-                            data-no-hex-label="<?php echo esc_attr( $no_hex_label ); ?>"
+                    // Mark rows with no hex so we can style them differently.
+                    if ( 'rows' === $display_mode && ! $hex ) {
+                        $row_classes[] = 'pct-row-no-hex';
+                    }
+                    ?>
+                    <tr
+                        <?php if ( ! empty( $row_classes ) ) : ?>
+                            class="<?php echo esc_attr( implode( ' ', $row_classes ) ); ?>"
+                        <?php endif; ?>
+                        <?php if ( $row_style ) : ?>
+                            style="<?php echo esc_attr( $row_style ); ?>"
+                        <?php endif; ?>
+                        <?php if ( 'rows' === $display_mode && $shade_url ) : ?>
+                            data-shade-url="<?php echo esc_url( $shade_url ); ?>"
                         <?php endif; ?>
                     >
-                        <span class="pct-name"><?php echo esc_html( $name ); ?></span>
-                    </td>
-                    <td class="pct-number">
-                        <?php echo esc_html( $number ); ?>
-                    </td>
-                    <td class="pct-models">
-                        <?php if ( ! empty( $links ) ) : ?>
-                            <?php
-                            $total_links = count( $links );
-                            $shown       = 0;
-
-                            foreach ( $links as $i => $link ) {
-                                $url    = isset( $link['url'] )   ? $link['url']   : '';
-                                $ltitle = isset( $link['title'] ) ? $link['title'] : '';
-
-                                if ( ! $url ) {
-                                    continue;
-                                }
-                                
-                                if ( '' === $ltitle ) {
-                                    if ( $total_links > 1 ) {
-                                        $ltitle = sprintf(
-                                            /* translators: %d: index number of this paint link. */
-                                            __( 'View %d', 'paint-tracker-and-mixing-helper' ),
-                                            $i + 1
-                                        );
-                                    } else {
-                                        $ltitle = __( 'View', 'paint-tracker-and-mixing-helper' );
-                                    }
-                                }
-
-                                $shown++;
-                                ?>
-                                <a href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener">
-                                    <?php echo esc_html( $ltitle ); ?>
-                                </a>
-                                <?php if ( $shown < $total_links ) : ?>
-                                    <br>
+                        <?php if ( 'dots' === $display_mode ) : ?>
+                            <td class="pct-swatch-cell">
+                                <?php if ( $hex ) : ?>
+                                    <?php if ( $shade_url ) : ?>
+                                        <a href="<?php echo esc_url( $shade_url ); ?>" class="pct-swatch-link">
+                                            <span class="pct-swatch" style="background-color: <?php echo esc_attr( $hex ); ?>"></span>
+                                        </a>
+                                    <?php else : ?>
+                                        <span class="pct-swatch" style="background-color: <?php echo esc_attr( $hex ); ?>"></span>
+                                    <?php endif; ?>
                                 <?php endif; ?>
-                            <?php } ?>
-                        <?php else : ?>
-                            &mdash;
+                            </td>
                         <?php endif; ?>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
+
+                        <td
+                            class="pct-name-cell<?php echo ( 'rows' === $display_mode && ! $hex ) ? ' pct-no-hex-cell' : ''; ?>"
+                            <?php if ( 'rows' === $display_mode && ! $hex ) : ?>
+                                data-no-hex-label="<?php echo esc_attr( $no_hex_label ); ?>"
+                            <?php endif; ?>
+                        >
+                            <span class="pct-name"><?php echo esc_html( $name ); ?></span>
+                        </td>
+                        <td class="pct-number">
+                            <?php echo esc_html( $number ); ?>
+                        </td>
+                        <td class="pct-models">
+                            <?php if ( ! empty( $links ) ) : ?>
+                                <?php
+                                $total_links = count( $links );
+                                $shown       = 0;
+
+                                foreach ( $links as $i => $link ) {
+                                    $url    = isset( $link['url'] ) ? $link['url'] : '';
+                                    $ltitle = isset( $link['title'] ) ? $link['title'] : '';
+
+                                    if ( ! $url ) {
+                                        continue;
+                                    }
+
+                                    if ( '' === $ltitle ) {
+                                        if ( $total_links > 1 ) {
+                                            $ltitle = sprintf(
+                                                /* translators: %d: index number of this paint link. */
+                                                __( 'View %d', 'paint-tracker-and-mixing-helper' ),
+                                                $i + 1
+                                            );
+                                        } else {
+                                            $ltitle = __( 'View', 'paint-tracker-and-mixing-helper' );
+                                        }
+                                    }
+
+                                    $shown++;
+                                    ?>
+                                    <a href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener">
+                                        <?php echo esc_html( $ltitle ); ?>
+                                    </a>
+                                    <?php if ( $shown < $total_links ) : ?>
+                                        <br>
+                                    <?php endif; ?>
+                                <?php } ?>
+                            <?php else : ?>
+                                &mdash;
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
             </tbody>
         </table>
     </div>

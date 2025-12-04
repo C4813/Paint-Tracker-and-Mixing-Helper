@@ -54,6 +54,62 @@ if ( ! function_exists( 'pct_text_color_for_hex_for_table' ) ) {
     }
 }
 
+if ( ! function_exists( 'pct_gradient_background_for_hex_for_table' ) ) {
+    /**
+     * Return a CSS background style string that uses a simple radial gradient
+     * based on the supplied hex colour.
+     *
+     * We keep the existing shape/size of swatches and rows – only the fill
+     * changes to a gradient.
+     */
+    function pct_gradient_background_for_hex_for_table( $hex ) {
+        if ( ! $hex ) {
+            return '';
+        }
+
+        $hex = trim( (string) $hex );
+        if ( '#' !== substr( $hex, 0, 1 ) ) {
+            $hex = '#' . $hex;
+        }
+
+        // Flat colour + simple highlight-to-shadow radial gradient.
+        // (We deliberately keep this generic so it works for any paint.)
+        return sprintf(
+            'background-color:%1$s; background-image: radial-gradient(circle at 30%% 30%%, #ffffff, %1$s 40%%, #000000 100%%);',
+            $hex
+        );
+    }
+}
+
+if ( ! function_exists( 'pct_gradient_row_background_for_hex_for_table' ) ) {
+    /**
+     * Subtle, full-width gradient for row highlight mode.
+     */
+    function pct_gradient_row_background_for_hex_for_table( $hex ) {
+        if ( ! $hex ) {
+            return '';
+        }
+
+        $hex = trim( (string) $hex );
+        if ( '#' !== substr( $hex, 0, 1 ) ) {
+            $hex = '#' . $hex;
+        }
+
+        // Base colour + soft white highlight on the left fading into a
+        // gentle shadow across the full width of the row.
+        return sprintf(
+            'background:%1$s; background-image: radial-gradient(
+                circle at 40%% 60%%,
+                rgba(255,255,255,0.68) 0%%,
+                rgba(255,255,255,0.42) 20%%,
+                rgba(255,255,255,0.24) 36%%,
+                rgba(0,0,0,0) 58%%,
+                rgba(0,0,0,0.25) 100%%
+            );',
+            $hex
+        );
+    }
+}
 // Determine mode (fallback to dots).
 $display_mode = isset( $pct_table_display_mode ) ? $pct_table_display_mode : 'dots';
 if ( 'rows' !== $display_mode ) {
@@ -97,10 +153,20 @@ $container_class_attr = implode( ' ', array_map( 'sanitize_html_class', $contain
                     $id     = isset( $paint['id'] ) ? (int) $paint['id'] : 0;
                     $name   = isset( $paint['name'] ) ? $paint['name'] : '';
                     $number = isset( $paint['number'] ) ? $paint['number'] : '';
-                    $hex    = isset( $paint['hex'] ) ? $paint['hex'] : '';
-                    $links  = ( isset( $paint['links'] ) && is_array( $paint['links'] ) ) ? $paint['links'] : [];
+                    $hex      = isset( $paint['hex'] ) ? $paint['hex'] : '';
+                    $links    = ( isset( $paint['links'] ) && is_array( $paint['links'] ) ) ? $paint['links'] : [];
+                    $gradient = ! empty( $paint['gradient'] );
                     $no_hex_label = __( 'No colour hex', 'paint-tracker-and-mixing-helper' );
-
+                    
+                    $swatch_style = '';
+                    if ( $hex ) {
+                        if ( $gradient ) {
+                            $swatch_style = pct_gradient_background_for_hex_for_table( $hex );
+                        } else {
+                            $swatch_style = 'background-color: ' . $hex . ';';
+                        }
+                    }
+                    
                     // Build shade helper URL if one is configured.
                     // Rows with no hex should NOT be clickable in row-highlight mode,
                     // so we only generate a URL when a hex value exists.
@@ -130,13 +196,20 @@ $container_class_attr = implode( ' ', array_map( 'sanitize_html_class', $contain
 
                     // Row colouring in "rows" mode if we have a hex.
                     if ( 'rows' === $display_mode && $hex ) {
-                        $bg_color   = $hex;
                         $text_color = pct_text_color_for_hex_for_table( $hex );
-                        $row_style  = sprintf(
-                            'background-color:%1$s; color:%2$s;',
-                            $bg_color,
-                            $text_color
-                        );
+                    
+                        if ( $gradient ) {
+                            // More subtle, full-width row gradient.
+                            $row_style = pct_gradient_row_background_for_hex_for_table( $hex );
+                            $row_style .= ' color:' . $text_color . ';';
+                        } else {
+                            $bg_color  = $hex;
+                            $row_style = sprintf(
+                                'background-color:%1$s; color:%2$s;',
+                                $bg_color,
+                                $text_color
+                            );
+                        }
                     }
 
                     // Make entire row clickable in row-highlight mode when we have a shade URL.
@@ -165,10 +238,16 @@ $container_class_attr = implode( ' ', array_map( 'sanitize_html_class', $contain
                                 <?php if ( $hex ) : ?>
                                     <?php if ( $shade_url ) : ?>
                                         <a href="<?php echo esc_url( $shade_url ); ?>" class="pct-swatch-link">
-                                            <span class="pct-swatch" style="background-color: <?php echo esc_attr( $hex ); ?>"></span>
+                                            <span
+                                                class="pct-swatch"
+                                                style="<?php echo esc_attr( $swatch_style ); ?>"
+                                            ></span>
                                         </a>
                                     <?php else : ?>
-                                        <span class="pct-swatch" style="background-color: <?php echo esc_attr( $hex ); ?>"></span>
+                                        <span
+                                            class="pct-swatch"
+                                            style="<?php echo esc_attr( $swatch_style ); ?>"
+                                        ></span>
                                     <?php endif; ?>
                                 <?php endif; ?>
                             </td>

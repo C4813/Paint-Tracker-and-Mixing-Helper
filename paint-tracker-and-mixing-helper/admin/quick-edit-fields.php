@@ -11,7 +11,7 @@
     <div class="inline-edit-col">
         <label>
             <span class="title">
-                <?php esc_html_e( 'Code / Type', 'paint-tracker-and-mixing-helper' ); ?>
+                <?php esc_html_e( 'Identifier', 'paint-tracker-and-mixing-helper' ); ?>
             </span>
             <span class="input-text-wrap">
                 <input type="text" name="pct_number" class="ptitle" value="">

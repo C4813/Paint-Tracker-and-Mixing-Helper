@@ -29,6 +29,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_LINK          = '_pct_link'; // legacy single link
         const META_BASE_TYPE     = '_pct_base_type';
         const META_EXCLUDE_SHADE = '_pct_exclude_shade';
+        const META_GRADIENT      = '_pct_gradient';
 
         // Plugin version (used for asset cache-busting)
         const VERSION = '0.10.6';
@@ -135,6 +136,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $links         = get_post_meta( $post->ID, self::META_LINKS, true );
             $base_type     = get_post_meta( $post->ID, self::META_BASE_TYPE, true );
             $exclude_shade = get_post_meta( $post->ID, self::META_EXCLUDE_SHADE, true );
+            $gradient      = get_post_meta( $post->ID, self::META_GRADIENT, true );
 
             if ( ! is_array( $links ) ) {
                 $links = [];
@@ -160,6 +162,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $pct_links         = $links;
             $pct_base_type     = $base_type;
             $pct_exclude_shade = (int) $exclude_shade;
+            $pct_gradient      = (int) $gradient;
 
             include plugin_dir_path( __FILE__ ) . 'admin/admin-page.php';
         }
@@ -230,6 +233,10 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 ? sanitize_text_field( wp_unslash( $_POST['pct_hex'] ) )
                 : '';
             update_post_meta( $post_id, self::META_HEX, $hex );
+            
+            // Save gradient toggle
+            $gradient = isset( $_POST['pct_gradient'] ) ? 1 : 0;
+            update_post_meta( $post_id, self::META_GRADIENT, $gradient );
 
             // Save on-shelf flag
             $on_shelf = isset( $_POST['pct_on_shelf'] ) ? 1 : 0;
@@ -705,19 +712,21 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
             while ( $q->have_posts() ) {
                 $q->the_post();
-                $id     = get_the_ID();
-                $name   = get_the_title();
-                $number = get_post_meta( $id, self::META_NUMBER, true );
-                $hex    = get_post_meta( $id, self::META_HEX, true );
-
+                $id       = get_the_ID();
+                $name     = get_the_title();
+                $number   = get_post_meta( $id, self::META_NUMBER, true );
+                $hex      = get_post_meta( $id, self::META_HEX, true );
+                $gradient = get_post_meta( $id, self::META_GRADIENT, true );
+            
                 $links = $this->get_paint_links( $id );
-
+            
                 $paints_data[] = [
-                    'id'     => $id,
-                    'name'   => $name,
-                    'number' => $number,
-                    'hex'    => $hex,
-                    'links'  => $links,
+                    'id'       => $id,
+                    'name'     => $name,
+                    'number'   => $number,
+                    'hex'      => $hex,
+                    'links'    => $links,
+                    'gradient' => (int) $gradient,
                 ];
             }
 

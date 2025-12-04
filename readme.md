@@ -2,7 +2,7 @@
 
 Shortcodes to display your miniature paint collection, plus interactive mixing and shading helpers for specific colours.
 
-- **Version:** 0.10.5
+- **Version:** 0.10.6
 - **Requires at least:** WordPress 6.0  
 - **Tested up to:** WordPress 6.7  
 - **License:** GPLv2 or later
@@ -19,8 +19,6 @@ Paint Tracker & Mixing Helper lets you keep a structured list of your miniature 
 
 All data is stored in a custom post type and taxonomy, so paints can be edited like regular WordPress content.
 
-This version also adds an **“Exclude from shading helper”** option per paint, allowing you to prevent certain paints (e.g., washes, technicals, or unsuitable colours) from ever being used as a suggested highlighter or darkener.
-
 ---
 
 ## Data model
@@ -35,7 +33,7 @@ The plugin registers a custom post type:
 Each paint stores:
 
 - **Title** – paint name.
-- **Paint number / code / type** – free text field (e.g. `70.800`, `Base`, `Layer`).
+- **Identifier** – free text field (e.g. `70.800`, `Base`, `Layer`).
 - **Base type** – required; one of:
   - `Acrylic`
   - `Enamel`
@@ -85,7 +83,7 @@ Displays a filterable table of paints.
 
 - Optional colour swatch column (“dots” mode).
 - Paint **name**.
-- **Code / Type**.
+- **Identifier**.
 - **Models**: links from the repeatable metafields.
 
 **Display modes**
@@ -138,7 +136,7 @@ Standalone shading and highlighting tool.
 Includes:
 
 - Full meta box for editing paint details.
-- Quick Edit (number, hex, on shelf, base type, exclude-from-shading).
+- Quick Edit (identifier, hex, on shelf, base type, exclude-from-shading).
 - Bulk Edit (base type, on shelf, exclude-from-shading).
 - CSV Import / Export.
 - Info & Settings page for:

@@ -524,6 +524,13 @@
     z-index: 50;
 }
 
+/* Ensure range dropdown items are left-aligned for readability */
+.pct-mix-range-dropdown .pct-mix-list,
+.pct-mix-range-dropdown .pct-mix-range-option,
+.pct-mix-range-dropdown .pct-mix-option-label {
+    text-align: left;
+}
+
 .pct-mix-dropdown:not(.pct-mix-open) .pct-mix-list,
 .pct-mix-range-dropdown:not(.pct-mix-open) .pct-mix-list {
     display: none;

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes to display your miniature paint collection, as well as a mixing and shading helper for specific colours.
- * Version: 0.10.6
+ * Version: 0.11.0
  * Author: C4813
  * Text Domain: paint-tracker-and-mixing-helper
  * Domain Path: /languages
@@ -32,7 +32,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_GRADIENT      = '_pct_gradient';
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.10.6';
+        const VERSION = '0.11.0';
 
         public function __construct() {
             add_action( 'init', [ $this, 'register_types' ] );
@@ -801,6 +801,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 $hex                  = get_post_meta( $post_id, self::META_HEX, true );
                 $base_type            = get_post_meta( $post_id, self::META_BASE_TYPE, true );
                 $exclude_from_shading = get_post_meta( $post_id, self::META_EXCLUDE_SHADE, true ) ? 1 : 0;
+                $gradient             = get_post_meta( $post_id, self::META_GRADIENT, true );
 
                 // Take the first range term for this paint (if multiple, first is fine)
                 $term_ids = wp_get_object_terms(
@@ -834,6 +835,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     'range_id'        => $range_id,
                     'all_range_ids'   => $all_range_ids,
                     'exclude_shading' => $exclude_from_shading,
+                    'gradient'        => (int) $gradient,
                 ];
             }
 
@@ -932,6 +934,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 $hex                  = get_post_meta( $post_id, self::META_HEX, true );
                 $base_type            = get_post_meta( $post_id, self::META_BASE_TYPE, true );
                 $exclude_from_shading = get_post_meta( $post_id, self::META_EXCLUDE_SHADE, true ) ? 1 : 0;
+                $gradient             = get_post_meta( $post_id, self::META_GRADIENT, true );
 
                 $term_ids = wp_get_object_terms(
                     $post_id,
@@ -964,6 +967,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     'range_id'        => $range_id,
                     'all_range_ids'   => $all_range_ids,
                     'exclude_shading' => $exclude_from_shading,
+                    'gradient'        => (int) $gradient,
                 ];
             }
 
@@ -1040,6 +1044,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 $range_id        = isset( $paint['range_id'] ) ? (int) $paint['range_id'] : 0;
                 $base_type       = isset( $paint['base_type'] ) ? $paint['base_type'] : '';
                 $exclude_shading = ! empty( $paint['exclude_shading'] ) ? 1 : 0;
+                $gradient        = ! empty( $paint['gradient'] ) ? 1 : 0;
 
                 if ( '' === $name || '' === $hex ) {
                     continue;
@@ -1075,12 +1080,29 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     $luminance = ( 0.299 * $r + 0.587 * $g + 0.114 * $b ) / 255;
                     $text_color = ( $luminance < 0.5 ) ? '#f9fafb' : '#111827';
                 }
+        
+                if ( $gradient ) {
+                    // Same "balanced metallic" gradient we tuned for row mode.
+                    $style = sprintf(
+                        'background:%1$s;color:%2$s;background-image: radial-gradient(' .
+                        'circle at 50%% 50%%,' .
+                        'rgba(255,255,255,0.68) 0%%,' .
+                        'rgba(255,255,255,0.42) 20%%,' .
+                        'rgba(255,255,255,0.24) 36%%,' .
+                        'rgba(0,0,0,0) 58%%,' .
+                        'rgba(0,0,0,0.25) 100%%' .
+                        ');',
+                        $hex,
+                        $text_color
+                    );
+                } else {
+                    $style = sprintf(
+                        'background-color:%1$s;color:%2$s;',
+                        $hex,
+                        $text_color
+                    );
+                }
 
-                $style = sprintf(
-                    'background-color:%1$s;color:%2$s;',
-                    $hex,
-                    $text_color
-                );
                 ?>
                 <div class="pct-mix-option"
                      data-hex="<?php echo esc_attr( $hex ); ?>"
@@ -1090,6 +1112,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                      data-id="<?php echo esc_attr( $id ); ?>"
                      data-base-type="<?php echo esc_attr( $base_type ); ?>"
                      data-exclude-shading="<?php echo esc_attr( $exclude_shading ); ?>"
+                     data-gradient="<?php echo esc_attr( $gradient ); ?>"
                      style="<?php echo esc_attr( $style ); ?>">
                     <span class="pct-mix-option-swatch"></span>
                     <span class="pct-mix-option-label"><?php echo esc_html( $label ); ?></span>
@@ -1326,17 +1349,24 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
                 return new WP_Error( 'pct_csv_empty', __( 'CSV file is empty.', 'paint-tracker-and-mixing-helper' ) );
             }
-
-            // If header row contains "title" etc., skip; otherwise treat as data.
-            $header = array_map( 'strtolower', $first_row );
+            
+            // If header row contains "title" etc., treat as header; otherwise treat as data.
+            $header          = array_map( 'strtolower', $first_row );
+            $gradient_index  = -1;
+            
             if (
                 in_array( 'title', $header, true )
                 || in_array( 'identifier', $header, true )
             ) {
-                // Already consumed header.
+                // Header row present. If it also has a "gradient" column, remember its index.
+                $gradient_index = array_search( 'gradient', $header, true );
+                if ( false === $gradient_index ) {
+                    $gradient_index = -1;
+                }
+                // Already consumed header row.
             } else {
-                // Rewind to treat first row as data.
-                rewind( $handle );
+                // No header row – rewind to treat first row as data.
+                rewind( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
             }
 
             while ( ( $data = fgetcsv( $handle ) ) !== false ) {
@@ -1347,7 +1377,15 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 $hex       = isset( $data[2] ) ? sanitize_text_field( $data[2] ) : '';
                 $base_type = isset( $data[3] ) ? sanitize_text_field( $data[3] ) : '';
                 $on_shelf  = isset( $data[4] ) ? intval( $data[4] ) : 0;
-
+                
+                // Gradient flag (optional header-based column).
+                $gradient = 0;
+                if ( $gradient_index >= 0 && isset( $data[ $gradient_index ] ) ) {
+                    $gradient_cell = trim( (string) $data[ $gradient_index ] );
+                    // Treat exactly "1" as on; everything else as off.
+                    $gradient = ( '1' === $gradient_cell ) ? 1 : 0;
+                }
+                
                 // Normalise hex: allow "2f353a" or "#2f353a" in CSV, but always store "#2f353a"
                 if ( '' !== $hex ) {
                     $hex = ltrim( $hex, " \t\n\r\0\x0B" ); // trim whitespace
@@ -1426,6 +1464,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 update_post_meta( $post_id, self::META_HEX, $hex );
                 update_post_meta( $post_id, self::META_BASE_TYPE, $base_type );
                 update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
+                update_post_meta( $post_id, self::META_GRADIENT, $gradient );
 
                 // Assign to range
                 wp_set_post_terms( $post_id, [ $range_id ], self::TAX );
@@ -1457,7 +1496,10 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $output = fopen( 'php://output', 'w' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 
             // Header row
-            fputcsv( $output, [ 'title', 'identifier', 'hex', 'base_type', 'on_shelf', 'ranges' ] );
+            fputcsv(
+                $output,
+                [ 'title', 'identifier', 'hex', 'base_type', 'on_shelf', 'ranges', 'gradient' ]
+            );
 
             // Base query
             $args = [
@@ -1506,11 +1548,12 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     $hex       = get_post_meta( $post_id, self::META_HEX, true );
                     $base_type = get_post_meta( $post_id, self::META_BASE_TYPE, true );
                     $on_shelf  = get_post_meta( $post_id, self::META_ON_SHELF, true );
-
+                    $gradient  = get_post_meta( $post_id, self::META_GRADIENT, true ); // '1' or '0' / ''
+                    
                     $ranges      = wp_get_post_terms( $post_id, self::TAX );
                     $range_names = wp_list_pluck( $ranges, 'name' );
                     $range_str   = implode( '|', $range_names );
-
+                    
                     fputcsv(
                         $output,
                         [
@@ -1520,6 +1563,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                             $base_type,
                             $on_shelf,
                             $range_str,
+                            $gradient ? 1 : 0, // normalise to 1/0 in the CSV
                         ]
                     );
                 }

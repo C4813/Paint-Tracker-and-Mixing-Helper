@@ -206,12 +206,12 @@ elseif ( 'import_page' === $pct_admin_view ) : ?>
         <?php endif; ?>
 
         <p>
-            <?php esc_html_e( 'Upload a CSV file to automatically create paints in a specific range.', 'paint-tracker-and-mixing-helper' ); ?>
+            <?php esc_html_e( 'Upload a CSV file to automatically create paints in a specific range. Each row in the file represents one paint.', 'paint-tracker-and-mixing-helper' ); ?>
         </p>
         <p>
             <?php
             esc_html_e(
-                'Expected format (per row): title, code / type (70.861 / Layer), hex colour, base type (acrylic/enamel/oil/lacquer), on shelf (0/1, optional; 1 = yes, 0 = no).',
+                'Expected format (per row): name, identifier/number (e.g. 70.861, Layer, Wash), hex colour (e.g. #2f353a), base type (acrylic/enamel/oil/lacquer), on shelf (0/1, optional; 1 = yes, 0 = no), gradient (0/1, optional; 1 = display as gradient, 0 = display as block with no gradient).',
                 'paint-tracker-and-mixing-helper'
             );
             ?>
@@ -678,6 +678,9 @@ elseif ( 'info_settings' === $pct_admin_view ) : ?>
             </li>
             <li>
                 <?php esc_html_e( 'on_shelf – 0 or 1 to indicate whether the paint is on your shelf.', 'paint-tracker-and-mixing-helper' ); ?>
+            </li>
+            <li>
+                <?php esc_html_e( 'gradient – optional 0 or 1; 1 means the paint colour will be displayed with a gradient swatch.', 'paint-tracker-and-mixing-helper' ); ?>
             </li>
         </ul>
         <p>

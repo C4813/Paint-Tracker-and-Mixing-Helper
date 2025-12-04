@@ -8,6 +8,24 @@ jQuery( function( $ ) {
     var hexToRgb        = window.pctColorUtils.hexToRgb;
     var mixColors       = window.pctColorUtils.mixColors;
     var textColorForHex = window.pctColorUtils.textColorForHex;
+    
+    // Build a row gradient style string from a hex + text colour.
+    function pctShadeGradientStyle( hex, textColor ) {
+        if ( ! hex ) {
+            return '';
+        }
+    
+        return 'background:' + hex + ';' +
+               'background-image: radial-gradient(' +
+                   'circle at 50% 50%,' +
+                   'rgba(255,255,255,0.68) 0%,' +
+                   'rgba(255,255,255,0.42) 20%,' +
+                   'rgba(255,255,255,0.24) 36%,' +
+                   'rgba(0,0,0,0) 58%,' +
+                   'rgba(0,0,0,0.25) 100%' +
+               ');' +
+               ' color:' + textColor + ';';
+    }
 
     $( document ).on( 'click', function() {
         closeAllDropdowns();
@@ -33,6 +51,7 @@ jQuery( function( $ ) {
 
         $dropdown.find( '.pct-mix-value' ).val( '' );
         $dropdown.attr( 'data-hex', '' );
+        $dropdown.removeAttr( 'data-gradient' );
         $list.find( '.pct-mix-option' ).removeClass( 'is-selected' );
         $dropdown.find( '.pct-mix-trigger-label' ).text(
             pctL10n( 'selectPaint', 'Select a paint' )
@@ -66,21 +85,23 @@ jQuery( function( $ ) {
         $list.on( 'click', '.pct-mix-option:visible', function( e ) {
             e.preventDefault();
             e.stopPropagation();
-
-            var $opt  = $( this );
-            var hex   = $opt.data( 'hex' ) || '';
-            var label = $opt.data( 'label' ) || '';
-
+        
+            var $opt      = $( this );
+            var hex       = $opt.data( 'hex' ) || '';
+            var label     = $opt.data( 'label' ) || '';
+            var gradient  = $opt.data( 'gradient' ) || 0;
+        
             $list.find( '.pct-mix-option' ).removeClass( 'is-selected' );
             $opt.addClass( 'is-selected' );
-
+        
             $hidden.val( hex );
             $dropdown.attr( 'data-hex', hex );
-
+            $dropdown.attr( 'data-gradient', gradient ? '1' : '0' );
+        
             if ( label ) {
                 $label.text( label );
             }
-
+        
             if ( $swatch.length ) {
                 if ( hex ) {
                     $swatch.css( 'background-color', hex );
@@ -88,15 +109,16 @@ jQuery( function( $ ) {
                     $swatch.css( 'background-color', 'transparent' );
                 }
             }
-
-            closeAllDropdowns();
-
+        
+            // 🔹 NEW: recompute the shade ladder when a paint is selected
             var $shadeContainer = $dropdown.closest( '.pct-shade-container' );
-
             if ( $shadeContainer.length ) {
                 updateShadeScale( $shadeContainer );
             }
+        
+            closeAllDropdowns();
         } );
+
     }
 
     function initRangeDropdown( $dropdown ) {
@@ -209,6 +231,7 @@ jQuery( function( $ ) {
 
         var $paintDropdown = $shadeColumn.find( '.pct-mix-dropdown-shade' );
         var baseHex        = $paintDropdown.find( '.pct-mix-value' ).val() || '';
+        var baseIsGradient = $paintDropdown.attr( 'data-gradient' ) === '1';
 
         function renderEmpty( $scale, key, fallback ) {
             $scale.html(
@@ -698,7 +721,9 @@ jQuery( function( $ ) {
                     mainHtml = '<div class="pct-shade-line">' + baseLine + '</div>';
 
                     var textColorBase = textColorForHex( row.hex );
-                    styleInline = 'background-color: ' + row.hex + '; color: ' + textColorBase + ';';
+                    styleInline = baseIsGradient
+                        ? pctShadeGradientStyle(row.hex, textColorBase)
+                        : 'background-color: ' + row.hex + '; color: ' + textColorBase + ';';
                 } else if ( row.ratio ) {
                     var other      = row.otherLabel || '';
                     var baseLine2  = baseLabel || baseHex.toUpperCase();
@@ -714,14 +739,18 @@ jQuery( function( $ ) {
                         '</div>';
 
                     var textColorMix = textColorForHex( row.hex );
-                    styleInline = 'background-color: ' + row.hex + '; color: ' + textColorMix + ';';
+                    styleInline = baseIsGradient
+                        ? pctShadeGradientStyle(row.hex, textColorMix)
+                        : 'background-color: ' + row.hex + '; color: ' + textColorMix + ';';
                 } else {
                     var fallbackText = baseLabel || baseHex.toUpperCase();
 
                     mainHtml = '<div class="pct-shade-line">' + fallbackText + '</div>';
 
                     var textColorFallback = textColorForHex( row.hex );
-                    styleInline = 'background-color: ' + row.hex + '; color: ' + textColorFallback + ';';
+                    styleInline = baseIsGradient
+                        ? pctShadeGradientStyle(row.hex, textColorFallback)
+                        : 'background-color: ' + row.hex + '; color: ' + textColorFallback + ';';
                 }
 
                 if (
@@ -903,19 +932,21 @@ jQuery( function( $ ) {
         if ( $match ) {
             var hexVal   = ( $match.data( 'hex' ) || defaultHex || '' ).toString();
             var label    = $match.data( 'label' ) || '';
+            var gradient = $match.data( 'gradient' ) || 0;       // <-- NEW
             var $hidden  = $paintDropdown.find( '.pct-mix-value' );
             var $labelEl = $paintDropdown.find( '.pct-mix-trigger-label' );
             var $swatch  = $paintDropdown.find( '.pct-mix-trigger-swatch' );
-
+    
             $paintDropdown.attr( 'data-hex', hexVal );
+            $paintDropdown.attr( 'data-gradient', gradient ? '1' : '0' );  // <-- NEW
             $hidden.val( hexVal );
             $paintDropdown.find( '.pct-mix-option' ).removeClass( 'is-selected' );
             $match.addClass( 'is-selected' );
-
+    
             if ( label ) {
                 $labelEl.text( label );
             }
-
+    
             if ( $swatch.length && hexVal ) {
                 $swatch.css( 'background-color', hexVal );
             }

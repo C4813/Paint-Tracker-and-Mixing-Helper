@@ -2,6 +2,27 @@ jQuery( function( $ ) {
 
     var pctMixL10n        = window.pctColorUtils.makeL10nHelper( 'pctMixingHelperL10n' );
     var closeAllDropdowns = window.pctColorUtils.closeAllDropdowns;
+    
+    // Build gradient background style for a hex + text colour.
+    function gradientBackgroundStyle( hex, textColor ) {
+        if ( ! hex ) {
+            return '';
+        }
+
+        return {
+            background: hex,
+            'background-image': 'radial-gradient(' +
+                'circle at 50% 50%,' +
+                'rgba(255,255,255,0.68) 0%,' +
+                'rgba(255,255,255,0.42) 20%,' +
+                'rgba(255,255,255,0.24) 36%,' +
+                'rgba(0,0,0,0) 58%,' +
+                'rgba(0,0,0,0.25) 100%' +
+            ')',
+            color: textColor
+        };
+    }
+
 
     // Turn "acrylic" -> "Acrylic" etc.
     function pctHumanBaseType( type ) {
@@ -45,6 +66,7 @@ jQuery( function( $ ) {
         $dropdown.find( '.pct-mix-value' ).val( '' );
         $dropdown.attr( 'data-hex', '' );
         $dropdown.removeAttr( 'data-base-type' );
+        $dropdown.removeAttr( 'data-gradient' );
         $list.find( '.pct-mix-option' ).removeClass( 'is-selected' );
         $dropdown.find( '.pct-mix-trigger-label' ).text(
             pctMixL10n( 'selectPaint', 'Select a paint' )
@@ -81,16 +103,18 @@ jQuery( function( $ ) {
             e.preventDefault();
             e.stopPropagation();
 
-            var $opt     = $( this );
-            var hex      = $opt.data( 'hex' ) || '';
-            var label    = $opt.data( 'label' ) || '';
-            var baseType = $opt.data( 'base-type' ) || '';
+            var $opt      = $( this );
+            var hex       = $opt.data( 'hex' ) || '';
+            var label     = $opt.data( 'label' ) || '';
+            var baseType  = $opt.data( 'base-type' ) || '';
+            var gradient  = $opt.data( 'gradient' ) || 0;
 
             $list.find( '.pct-mix-option' ).removeClass( 'is-selected' );
             $opt.addClass( 'is-selected' );
 
             $hidden.val( hex );
             $dropdown.attr( 'data-hex', hex );
+            $dropdown.attr( 'data-gradient', gradient ? '1' : '0' );
 
             if ( baseType ) {
                 $dropdown.attr( 'data-base-type', baseType );
@@ -190,6 +214,9 @@ jQuery( function( $ ) {
 
         var baseTypeLeft  = $leftDropdown.attr( 'data-base-type' ) || '';
         var baseTypeRight = $rightDropdown.attr( 'data-base-type' ) || '';
+        var gradientLeft  = $leftDropdown.attr( 'data-gradient' ) === '1';
+        var gradientRight = $rightDropdown.attr( 'data-gradient' ) === '1';
+        var useGradient   = gradientLeft || gradientRight;
 
         var $resultBlock  = $container.find( '.pct-mix-result-block' );
         var $resultHex    = $container.find( '.pct-mix-result-hex' );
@@ -234,8 +261,10 @@ jQuery( function( $ ) {
             }
 
             $resultBlock.css( {
+                background: '',
                 'background-color': '',
-                'color': ''
+                'background-image': '',
+                color: ''
             } );
 
             $resultBlock.css( 'display', 'flex' );
@@ -255,10 +284,18 @@ jQuery( function( $ ) {
             $resultHex.text( mixedHex );
         }
 
-        $resultBlock.css( {
-            'background-color': mixedHex,
-            'color': textColorForHex( mixedHex )
-        } );
+        var textColor = textColorForHex(mixedHex);
+        
+        if (useGradient) {
+            $resultBlock.css( gradientBackgroundStyle(mixedHex, textColor) );
+        } else {
+            $resultBlock.css({
+                background: '',
+                'background-image': '',
+                'background-color': mixedHex,
+                color: textColor
+            });
+        }
 
         $resultBlock.css( 'display', 'flex' );
     }

@@ -4,7 +4,7 @@ Tags: paint, colours, mixing, miniature, hobby
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.10.5
+Stable tag: 0.10.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Hobby paint tracker and mixing/shading helper for miniature painting.
@@ -27,7 +27,7 @@ Hobby Paint Tracker and Mixing/Shading Helper.
 Each paint stores:
 
 * Title – paint name.
-* Paint number / code / type – free text.
+* Identifier – free text field (e.g. 70.800, Base, Layer)
 * Base type – Acrylic, Enamel, Oil or Lacquer.
 * Hex colour.
 * On the shelf.

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes to display your miniature paint collection, as well as a mixing and shading helper for specific colours.
- * Version: 0.11.0
+ * Version: 0.12.0
  * Author: C4813
  * Text Domain: paint-tracker-and-mixing-helper
  * Domain Path: /languages
@@ -32,7 +32,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_GRADIENT      = '_pct_gradient';
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.11.0';
+        const VERSION = '0.12.0';
 
         public function __construct() {
             add_action( 'init', [ $this, 'register_types' ] );
@@ -1225,16 +1225,24 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             if ( ! current_user_can( 'manage_options' ) ) {
                 wp_die( esc_html__( 'You do not have permission to access this page.', 'paint-tracker-and-mixing-helper' ) );
             }
-
+        
             $message = '';
             $errors  = [];
-
+        
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            $use_csv_ranges = ! empty( $_POST['pct_pull_range_from_csv'] );
+        
             if ( isset( $_POST['pct_import_submit'] ) ) {
                 check_admin_referer( 'pct_import_paints', 'pct_import_nonce' );
-
-                $range_id = isset( $_POST['pct_range'] ) ? intval( $_POST['pct_range'] ) : 0;
-                if ( ! $range_id ) {
-                    $errors[] = __( 'Please choose a paint range.', 'paint-tracker-and-mixing-helper' );
+        
+                if ( $use_csv_ranges ) {
+                    // When pulling from CSV, we ignore the dropdown completely.
+                    $range_id = 0;
+                } else {
+                    $range_id = isset( $_POST['pct_range'] ) ? intval( $_POST['pct_range'] ) : 0;
+                    if ( ! $range_id ) {
+                        $errors[] = __( 'Please choose a paint range.', 'paint-tracker-and-mixing-helper' );
+                    }
                 }
 
                 if ( empty( $_FILES['pct_csv']['tmp_name'] ) ) {
@@ -1254,7 +1262,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     } else {
                         $file_path = $uploaded_file['file'];
 
-                        $result = $this->import_csv_file( $file_path, $range_id );
+                        $result = $this->import_csv_file( $file_path, $range_id, $use_csv_ranges );
 
                         if ( is_wp_error( $result ) ) {
                             $errors[] = $result->get_error_message();
@@ -1277,8 +1285,8 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $pct_admin_view     = 'import_page';
             $pct_import_message = $message;
             $pct_import_errors  = $errors;
-
-            $pct_import_ranges = get_terms(
+        
+            $pct_import_ranges        = get_terms(
                 [
                     'taxonomy'   => self::TAX,
                     'hide_empty' => false,
@@ -1286,7 +1294,8 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     'order'      => 'ASC',
                 ]
             );
-
+            $pct_pull_range_from_csv = $use_csv_ranges;
+        
             include plugin_dir_path( __FILE__ ) . 'admin/admin-page.php';
         }
 
@@ -1325,12 +1334,16 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             exit;
         }
 
-        /**
-         * Import paints from a CSV file into a specific range.
-         *
-         * Expected columns: title, identifier, hex, base_type, on_shelf (0/1)
-         */
-        private function import_csv_file( $file_path, $range_id ) {
+            /**
+             * Import paints from a CSV file.
+             *
+             * Expected columns:
+             * - title, identifier, hex, base_type, on_shelf (0/1)
+             * - ranges (optional; only used when $use_csv_ranges is true)
+             * - gradient (optional)
+             */
+            private function import_csv_file( $file_path, $range_id, $use_csv_ranges = false ) {
+
             if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
                 return new WP_Error( 'pct_csv_missing', __( 'CSV file is missing or not readable.', 'paint-tracker-and-mixing-helper' ) );
             }
@@ -1351,8 +1364,9 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             }
             
             // If header row contains "title" etc., treat as header; otherwise treat as data.
-            $header          = array_map( 'strtolower', $first_row );
-            $gradient_index  = -1;
+            $header         = array_map( 'strtolower', $first_row );
+            $gradient_index = -1;
+            $range_index    = -1;
             
             if (
                 in_array( 'title', $header, true )
@@ -1363,21 +1377,52 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 if ( false === $gradient_index ) {
                     $gradient_index = -1;
                 }
+            
+                // When pulling ranges from CSV, also locate the "ranges" column.
+                if ( $use_csv_ranges ) {
+                    $range_index = array_search( 'ranges', $header, true );
+                    if ( false === $range_index ) {
+                        $range_index = -1;
+                    }
+                }
                 // Already consumed header row.
             } else {
                 // No header row – rewind to treat first row as data.
                 rewind( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
             }
+            
+            // If the user requested ranges from CSV but we didn’t find a "ranges" column, fail early.
+            if ( $use_csv_ranges && -1 === $range_index ) {
+                fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+                return new WP_Error(
+                    'pct_csv_no_ranges',
+                    __( 'CSV header must contain a "ranges" column when "Pull range from CSV" is enabled.', 'paint-tracker-and-mixing-helper' )
+                );
+            }
 
             while ( ( $data = fgetcsv( $handle ) ) !== false ) {
                 $row++;
-
+            
                 $title     = isset( $data[0] ) ? sanitize_text_field( $data[0] ) : '';
                 $number    = isset( $data[1] ) ? sanitize_text_field( $data[1] ) : '';
                 $hex       = isset( $data[2] ) ? sanitize_text_field( $data[2] ) : '';
                 $base_type = isset( $data[3] ) ? sanitize_text_field( $data[3] ) : '';
                 $on_shelf  = isset( $data[4] ) ? intval( $data[4] ) : 0;
-                
+            
+                // Ranges (optional, only if "Pull range from CSV" is enabled).
+                $range_names = [];
+                if ( $use_csv_ranges && $range_index >= 0 && isset( $data[ $range_index ] ) ) {
+                    $ranges_cell = trim( (string) $data[ $range_index ] );
+                    if ( '' !== $ranges_cell ) {
+                        $range_names = array_filter(
+                            array_map(
+                                'trim',
+                                explode( '|', $ranges_cell )
+                            )
+                        );
+                    }
+                }
+            
                 // Gradient flag (optional header-based column).
                 $gradient = 0;
                 if ( $gradient_index >= 0 && isset( $data[ $gradient_index ] ) ) {
@@ -1385,7 +1430,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     // Treat exactly "1" as on; everything else as off.
                     $gradient = ( '1' === $gradient_cell ) ? 1 : 0;
                 }
-                
+
                 // Normalise hex: allow "2f353a" or "#2f353a" in CSV, but always store "#2f353a"
                 if ( '' !== $hex ) {
                     $hex = ltrim( $hex, " \t\n\r\0\x0B" ); // trim whitespace
@@ -1465,10 +1510,33 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 update_post_meta( $post_id, self::META_BASE_TYPE, $base_type );
                 update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
                 update_post_meta( $post_id, self::META_GRADIENT, $gradient );
-
-                // Assign to range
-                wp_set_post_terms( $post_id, [ $range_id ], self::TAX );
-
+            
+                // Assign to range(s)
+                $term_ids = [];
+            
+                if ( $use_csv_ranges ) {
+                    // Resolve each range name into a term, creating it if necessary.
+                    foreach ( $range_names as $range_name ) {
+                        $existing_term = term_exists( $range_name, self::TAX );
+                        if ( $existing_term && ! is_wp_error( $existing_term ) ) {
+                            $term_ids[] = (int) ( is_array( $existing_term ) ? $existing_term['term_id'] : $existing_term->term_id );
+                        } else {
+                            $new_term = wp_insert_term( $range_name, self::TAX );
+                            if ( ! is_wp_error( $new_term ) ) {
+                                $term_ids[] = (int) ( is_array( $new_term ) ? $new_term['term_id'] : $new_term->term_id );
+                            }
+                        }
+                    }
+                } else {
+                    if ( $range_id ) {
+                        $term_ids[] = (int) $range_id;
+                    }
+                }
+            
+                if ( ! empty( $term_ids ) ) {
+                    wp_set_post_terms( $post_id, $term_ids, self::TAX );
+                }
+            
                 $imported++;
             }
 

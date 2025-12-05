@@ -209,53 +209,184 @@ elseif ( 'import_page' === $pct_admin_view ) : ?>
             <?php esc_html_e( 'Upload a CSV file to automatically create paints in a specific range. Each row in the file represents one paint.', 'paint-tracker-and-mixing-helper' ); ?>
         </p>
         <p>
-            <?php
-            esc_html_e(
-                'Expected format (per row): name, identifier/number (e.g. 70.861, Layer, Wash), hex colour (e.g. #2f353a), base type (acrylic/enamel/oil/lacquer), on shelf (0/1, optional; 1 = yes, 0 = no), gradient (0/1, optional; 1 = display as gradient, 0 = display as block with no gradient).',
-                'paint-tracker-and-mixing-helper'
-            );
-            ?>
+            <?php esc_html_e( 'Expected CSV columns (per row):', 'paint-tracker-and-mixing-helper' ); ?>
         </p>
+        <ul>
+            <li>
+                <?php esc_html_e(
+                    'name – paint name/title.',
+                    'paint-tracker-and-mixing-helper'
+                ); ?>
+            </li>
+            <li>
+                <?php esc_html_e(
+                    'identifier/number – e.g. 70.861, Layer, Wash.',
+                    'paint-tracker-and-mixing-helper'
+                ); ?>
+            </li>
+            <li>
+                <?php esc_html_e(
+                    'hex colour – e.g. #2f353a.',
+                    'paint-tracker-and-mixing-helper'
+                ); ?>
+            </li>
+            <li>
+                <?php esc_html_e(
+                    'base type – acrylic, enamel, oil, -OR- lacquer.',
+                    'paint-tracker-and-mixing-helper'
+                ); ?>
+            </li>
+            <li>
+                <?php esc_html_e(
+                    'on shelf – 0 or 1 (optional; 1 = on shelf, 0 = not on shelf).',
+                    'paint-tracker-and-mixing-helper'
+                ); ?>
+            </li>
+            <li>
+                <?php esc_html_e(
+                    'gradient – 0 or 1 (optional; 1 = display as gradient, 0 = solid block).',
+                    'paint-tracker-and-mixing-helper'
+                ); ?>
+            </li>
+            <li>
+                <?php esc_html_e(
+                    'ranges – optional; used when “Pull range from CSV” is enabled. Multiple ranges are separated by a pipe (|), e.g. Vallejo|Vallejo Model Color.',
+                    'paint-tracker-and-mixing-helper'
+                ); ?>
+            </li>
+        </ul>
 
         <form method="post" enctype="multipart/form-data">
             <?php wp_nonce_field( 'pct_import_paints', 'pct_import_nonce' ); ?>
 
             <table class="form-table" role="presentation">
-                <tr>
-                    <th scope="row">
-                        <label for="pct_range">
-                            <?php esc_html_e( 'Paint range', 'paint-tracker-and-mixing-helper' ); ?>
-                        </label>
-                    </th>
-                    <td>
-                        <?php
-                        wp_dropdown_categories(
-                            [
-                                'taxonomy'         => PCT_Paint_Table_Plugin::TAX,
-                                'name'             => 'pct_range',
-                                'id'               => 'pct_range',
-                                'hide_empty'       => false,
-                                'show_option_none' => __( 'Select a range', 'paint-tracker-and-mixing-helper' ),
-                            ]
-                        );
-                        ?>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">
-                        <label for="pct_csv">
-                            <?php esc_html_e( 'CSV file', 'paint-tracker-and-mixing-helper' ); ?>
-                        </label>
-                    </th>
-                    <td>
-                        <input
-                            type="file"
-                            name="pct_csv"
-                            id="pct_csv"
-                            accept=".csv"
-                        >
-                    </td>
-                </tr>
+                <tbody>
+                    <tr>
+                        <th scope="row">
+                            <label for="pct_range">
+                                <?php esc_html_e( 'Paint range', 'paint-tracker-and-mixing-helper' ); ?>
+                            </label>
+                        </th>
+                        <td>
+                            <?php
+                            // Selected range from POST (if any).
+                            $selected_range = isset( $_POST['pct_range'] )
+                                ? (int) $_POST['pct_range']
+                                : 0;
+
+                            // Build parent → children map from $pct_import_ranges,
+                            // preserving the order coming from get_terms()
+                            // (which is already ordered by term_order ASC).
+                            $pct_ranges_by_parent = [];
+
+                            if ( ! empty( $pct_import_ranges ) && ! is_wp_error( $pct_import_ranges ) ) {
+                                foreach ( $pct_import_ranges as $range ) {
+                                    $parent_id = (int) $range->parent;
+
+                                    if ( ! isset( $pct_ranges_by_parent[ $parent_id ] ) ) {
+                                        $pct_ranges_by_parent[ $parent_id ] = [];
+                                    }
+
+                                    $pct_ranges_by_parent[ $parent_id ][] = $range;
+                                }
+                            }
+
+                            if ( ! function_exists( 'pct_render_import_range_options_hierarchical' ) ) {
+                                /**
+                                 * Render <option> tags hierarchically, matching the
+                                 * order used by the front-end mixer/shader dropdowns.
+                                 */
+                                function pct_render_import_range_options_hierarchical( $parent_id, $map, $depth, $selected ) {
+                                    if ( empty( $map[ $parent_id ] ) ) {
+                                        return;
+                                    }
+
+                                    foreach ( $map[ $parent_id ] as $term ) {
+                                        $indent = str_repeat( '— ', max( 0, (int) $depth ) );
+
+                                        printf(
+                                            '<option value="%1$d"%2$s>%3$s%4$s</option>',
+                                            (int) $term->term_id,
+                                            selected( $selected, $term->term_id, false ),
+                                            esc_html( $indent ),
+                                            esc_html( $term->name )
+                                        );
+
+                                        pct_render_import_range_options_hierarchical(
+                                            $term->term_id,
+                                            $map,
+                                            $depth + 1,
+                                            $selected
+                                        );
+                                    }
+                                }
+                            }
+                            ?>
+                            <select name="pct_range" id="pct_range">
+                                <option value="">
+                                    <?php esc_html_e( 'Select a range', 'paint-tracker-and-mixing-helper' ); ?>
+                                </option>
+                                <?php
+                                // Render all ranges starting from top-level parents (0)
+                                if ( ! empty( $pct_ranges_by_parent ) ) {
+                                    pct_render_import_range_options_hierarchical(
+                                        0,
+                                        $pct_ranges_by_parent,
+                                        0,
+                                        $selected_range
+                                    );
+                                }
+                                ?>
+                            </select>
+                            <p class="description">
+                                <?php esc_html_e(
+                                    'Used when “Pull range from CSV” is not enabled.',
+                                    'paint-tracker-and-mixing-helper'
+                                ); ?>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row"></th>
+                        <td>
+                            <label for="pct_pull_range_from_csv">
+                                <input
+                                    type="checkbox"
+                                    name="pct_pull_range_from_csv"
+                                    id="pct_pull_range_from_csv"
+                                    value="1"
+                                    <?php
+                                    echo ! empty( $pct_pull_range_from_csv ) ? 'checked="checked"' : '';
+                                    ?>
+                                />
+                                <?php esc_html_e( 'Pull range from CSV', 'paint-tracker-and-mixing-helper' ); ?>
+                            </label>
+                            <p class="description">
+                                <?php esc_html_e(
+                                    'When enabled, the “Paint range” dropdown is ignored and ranges are read from the “ranges” column in the CSV.',
+                                    'paint-tracker-and-mixing-helper'
+                                ); ?>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">
+                            <label for="pct_csv">
+                                <?php esc_html_e( 'CSV file', 'paint-tracker-and-mixing-helper' ); ?>
+                            </label>
+                        </th>
+                        <td>
+                            <input
+                                type="file"
+                                name="pct_csv"
+                                id="pct_csv"
+                                accept=".csv,text/csv"
+                            />
+                        </td>
+                    </tr>
+                </tbody>
             </table>
 
             <?php submit_button( __( 'Import paints', 'paint-tracker-and-mixing-helper' ), 'primary', 'pct_import_submit' ); ?>

@@ -356,7 +356,7 @@
 /* text sizing inside rows – match dropdown text (bumped to 15px) */
 .pct-shade-row-main,
 .pct-shade-row-hex {
-    font-size: 15px;
+    font-size: 13px;
     line-height: 1.3;
 }
 

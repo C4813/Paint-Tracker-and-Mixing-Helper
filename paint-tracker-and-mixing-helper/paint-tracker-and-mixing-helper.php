@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes to display your miniature paint collection, as well as a mixing and shading helper for specific colours.
- * Version: 0.12.0
+ * Version: 0.13.0
  * Author: C4813
  * Text Domain: paint-tracker-and-mixing-helper
  * Domain Path: /languages
@@ -32,7 +32,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_GRADIENT      = '_pct_gradient';
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.12.0';
+        const VERSION = '0.13.0';
 
         public function __construct() {
             add_action( 'init', [ $this, 'register_types' ] );
@@ -234,9 +234,21 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 : '';
             update_post_meta( $post_id, self::META_HEX, $hex );
             
-            // Save gradient toggle
-            $gradient = isset( $_POST['pct_gradient'] ) ? 1 : 0;
-            update_post_meta( $post_id, self::META_GRADIENT, $gradient );
+            // Save metallic / shade swatch style.
+            // 0 = flat, 1 = metallic, 2 = shade.
+            $gradient_type = 0;
+
+            $has_metallic = ! empty( $_POST['pct_gradient_metallic'] );
+            $has_shade    = ! empty( $_POST['pct_gradient_shade'] );
+
+            if ( $has_shade ) {
+                // If both are ticked somehow, shade "wins".
+                $gradient_type = 2;
+            } elseif ( $has_metallic ) {
+                $gradient_type = 1;
+            }
+
+            update_post_meta( $post_id, self::META_GRADIENT, $gradient_type );
 
             // Save on-shelf flag
             $on_shelf = isset( $_POST['pct_on_shelf'] ) ? 1 : 0;
@@ -1044,7 +1056,8 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 $range_id        = isset( $paint['range_id'] ) ? (int) $paint['range_id'] : 0;
                 $base_type       = isset( $paint['base_type'] ) ? $paint['base_type'] : '';
                 $exclude_shading = ! empty( $paint['exclude_shading'] ) ? 1 : 0;
-                $gradient        = ! empty( $paint['gradient'] ) ? 1 : 0;
+                // 0 = none, 1 = metallic, 2 = shade
+                $gradient        = isset( $paint['gradient'] ) ? (int) $paint['gradient'] : 0;
 
                 if ( '' === $name || '' === $hex ) {
                     continue;
@@ -1081,23 +1094,35 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     $text_color = ( $luminance < 0.5 ) ? '#f9fafb' : '#111827';
                 }
         
-                if ( $gradient ) {
-                    // Same "balanced metallic" gradient we tuned for row mode.
+                if ( 1 === $gradient ) {
+                    // Metallic: white highlight near the left.
                     $style = sprintf(
                         'background:%1$s;color:%2$s;background-image: radial-gradient(' .
-                        'circle at 50%% 50%%,' .
+                        'circle at 90%% 50%%,' .
                         'rgba(255,255,255,0.68) 0%%,' .
                         'rgba(255,255,255,0.42) 20%%,' .
                         'rgba(255,255,255,0.24) 36%%,' .
-                        'rgba(0,0,0,0) 58%%,' .
-                        'rgba(0,0,0,0.25) 100%%' .
+                        'rgba(0,0,0,0) 58%%' .
+                        ');',
+                        $hex,
+                        $text_color
+                    );
+                } elseif ( 2 === $gradient ) {
+                    // Shade: dark patch near the right.
+                    $style = sprintf(
+                        'background:%1$s;color:%2$s;background-image: radial-gradient(' .
+                        'circle at 90%% 50%%,' .
+                        'rgba(0,0,0,0.68) 0%%,' .
+                        'rgba(0,0,0,0.42) 20%%,' .
+                        'rgba(0,0,0,0.24) 36%%,' .
+                        'rgba(0,0,0,0) 58%%' .
                         ');',
                         $hex,
                         $text_color
                     );
                 } else {
                     $style = sprintf(
-                        'background-color:%1$s;color:%2$s;',
+                        'background:%1$s;color:%2$s;',
                         $hex,
                         $text_color
                     );
@@ -1424,11 +1449,32 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 }
             
                 // Gradient flag (optional header-based column).
+                // New format: 0 = none, 1 = metallic, 2 = shade.
+                // Also remains compatible with legacy 0/1 CSVs (any non-zero becomes 1 unless it's exactly 2).
                 $gradient = 0;
                 if ( $gradient_index >= 0 && isset( $data[ $gradient_index ] ) ) {
                     $gradient_cell = trim( (string) $data[ $gradient_index ] );
-                    // Treat exactly "1" as on; everything else as off.
-                    $gradient = ( '1' === $gradient_cell ) ? 1 : 0;
+                
+                    if ( $gradient_cell === '' ) {
+                        $gradient = 0;
+                    } elseif ( is_numeric( $gradient_cell ) ) {
+                        $gradient = (int) $gradient_cell;
+                        // Clamp to the supported range.
+                        if ( $gradient < 0 ) {
+                            $gradient = 0;
+                        } elseif ( $gradient > 2 ) {
+                            $gradient = 2;
+                        }
+                    } else {
+                        // Non-numeric junk: treat as "no special swatch".
+                        $gradient = 0;
+                    }
+                
+                    // Legacy handling: old CSVs only used 0/1 – any non-zero becomes metallic (1),
+                    // unless it's already the explicit shade value (2).
+                    if ( $gradient !== 0 && $gradient !== 2 ) {
+                        $gradient = 1;
+                    }
                 }
 
                 // Normalise hex: allow "2f353a" or "#2f353a" in CSV, but always store "#2f353a"
@@ -1592,18 +1638,6 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 ];
             }
 
-            // Only paints marked as "on shelf"
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing
-            $export_only_shelf = ! empty( $_POST['pct_export_only_shelf'] );
-            if ( $export_only_shelf ) {
-                $args['meta_query'] = [
-                    [
-                        'key'   => self::META_ON_SHELF,
-                        'value' => '1',
-                    ],
-                ];
-            }
-
             $query = new WP_Query( $args );
 
             if ( $query->have_posts() ) {
@@ -1616,7 +1650,13 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     $hex       = get_post_meta( $post_id, self::META_HEX, true );
                     $base_type = get_post_meta( $post_id, self::META_BASE_TYPE, true );
                     $on_shelf  = get_post_meta( $post_id, self::META_ON_SHELF, true );
-                    $gradient  = get_post_meta( $post_id, self::META_GRADIENT, true ); // '1' or '0' / ''
+                    $gradient  = get_post_meta( $post_id, self::META_GRADIENT, true );
+                    
+                    // Normalise gradient to the allowed 0–2 range for CSV output.
+                    $gradient = (int) $gradient;
+                    if ( $gradient < 0 || $gradient > 2 ) {
+                        $gradient = 0;
+                    }
                     
                     $ranges      = wp_get_post_terms( $post_id, self::TAX );
                     $range_names = wp_list_pluck( $ranges, 'name' );
@@ -1631,7 +1671,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                             $base_type,
                             $on_shelf,
                             $range_str,
-                            $gradient ? 1 : 0, // normalise to 1/0 in the CSV
+                            $gradient, // <-- write 0/1/2 directly
                         ]
                     );
                 }

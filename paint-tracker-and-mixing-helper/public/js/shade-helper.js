@@ -10,20 +10,35 @@ jQuery( function( $ ) {
     var textColorForHex = window.pctColorUtils.textColorForHex;
     
     // Build a row gradient style string from a hex + text colour.
-    function pctShadeGradientStyle( hex, textColor ) {
+    // gradientType: 1 = metallic (light), 2 = shade (dark).
+    function pctShadeGradientStyle( hex, textColor, gradientType ) {
         if ( ! hex ) {
             return '';
         }
     
+        gradientType = parseInt( gradientType, 10 ) || 1;
+    
+        var stops;
+        if ( gradientType === 2 ) {
+            // Shade: same shape as metallic, but dark instead of light.
+            stops =
+                'circle at 90% 50%,' +
+                'rgba(0,0,0,0.68) 0%,' +
+                'rgba(0,0,0,0.42) 20%,' +
+                'rgba(0,0,0,0.24) 36%,' +
+                'rgba(0,0,0,0) 58%';
+        } else {
+            // Metallic (default): white highlight, but on the right.
+            stops =
+                'circle at 90% 50%,' +
+                'rgba(255,255,255,0.68) 0%,' +
+                'rgba(255,255,255,0.42) 20%,' +
+                'rgba(255,255,255,0.24) 36%,' +
+                'rgba(0,0,0,0) 58%';
+        }
+    
         return 'background:' + hex + ';' +
-               'background-image: radial-gradient(' +
-                   'circle at 50% 50%,' +
-                   'rgba(255,255,255,0.68) 0%,' +
-                   'rgba(255,255,255,0.42) 20%,' +
-                   'rgba(255,255,255,0.24) 36%,' +
-                   'rgba(0,0,0,0) 58%,' +
-                   'rgba(0,0,0,0.25) 100%' +
-               ');' +
+               'background-image: radial-gradient(' + stops + ');' +
                ' color:' + textColor + ';';
     }
 
@@ -96,7 +111,7 @@ jQuery( function( $ ) {
         
             $hidden.val( hex );
             $dropdown.attr( 'data-hex', hex );
-            $dropdown.attr( 'data-gradient', gradient ? '1' : '0' );
+            $dropdown.attr( 'data-gradient', String( gradient || 0 ) );
         
             if ( label ) {
                 $label.text( label );
@@ -229,9 +244,10 @@ jQuery( function( $ ) {
             return;
         }
 
-        var $paintDropdown = $shadeColumn.find( '.pct-mix-dropdown-shade' );
-        var baseHex        = $paintDropdown.find( '.pct-mix-value' ).val() || '';
-        var baseIsGradient = $paintDropdown.attr( 'data-gradient' ) === '1';
+        var $paintDropdown   = $shadeColumn.find( '.pct-mix-dropdown-shade' );
+        var baseHex          = $paintDropdown.find( '.pct-mix-value' ).val() || '';
+        var baseGradientType = parseInt( $paintDropdown.attr( 'data-gradient' ) || '0', 10 ) || 0;
+        var baseHasGradient  = baseGradientType !== 0;
 
         function renderEmpty( $scale, key, fallback ) {
             $scale.html(
@@ -721,8 +737,8 @@ jQuery( function( $ ) {
                     mainHtml = '<div class="pct-shade-line">' + baseLine + '</div>';
 
                     var textColorBase = textColorForHex( row.hex );
-                    styleInline = baseIsGradient
-                        ? pctShadeGradientStyle(row.hex, textColorBase)
+                    styleInline = baseHasGradient
+                        ? pctShadeGradientStyle( row.hex, textColorBase, baseGradientType )
                         : 'background-color: ' + row.hex + '; color: ' + textColorBase + ';';
                 } else if ( row.ratio ) {
                     var other      = row.otherLabel || '';
@@ -739,8 +755,8 @@ jQuery( function( $ ) {
                         '</div>';
 
                     var textColorMix = textColorForHex( row.hex );
-                    styleInline = baseIsGradient
-                        ? pctShadeGradientStyle(row.hex, textColorMix)
+                    styleInline = baseHasGradient
+                        ? pctShadeGradientStyle( row.hex, textColorMix, baseGradientType )
                         : 'background-color: ' + row.hex + '; color: ' + textColorMix + ';';
                 } else {
                     var fallbackText = baseLabel || baseHex.toUpperCase();
@@ -748,8 +764,8 @@ jQuery( function( $ ) {
                     mainHtml = '<div class="pct-shade-line">' + fallbackText + '</div>';
 
                     var textColorFallback = textColorForHex( row.hex );
-                    styleInline = baseIsGradient
-                        ? pctShadeGradientStyle(row.hex, textColorFallback)
+                    styleInline = baseHasGradient
+                        ? pctShadeGradientStyle( row.hex, textColorFallback, baseGradientType )
                         : 'background-color: ' + row.hex + '; color: ' + textColorFallback + ';';
                 }
 
@@ -938,7 +954,7 @@ jQuery( function( $ ) {
             var $swatch  = $paintDropdown.find( '.pct-mix-trigger-swatch' );
     
             $paintDropdown.attr( 'data-hex', hexVal );
-            $paintDropdown.attr( 'data-gradient', gradient ? '1' : '0' );  // <-- NEW
+            $paintDropdown.attr( 'data-gradient', String( gradient || 0 ) );
             $hidden.val( hexVal );
             $paintDropdown.find( '.pct-mix-option' ).removeClass( 'is-selected' );
             $match.addClass( 'is-selected' );

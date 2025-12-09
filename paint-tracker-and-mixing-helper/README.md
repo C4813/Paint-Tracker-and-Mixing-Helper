@@ -4,7 +4,7 @@ Comprehensive tools for cataloguing miniature paints, browsing your collection, 
 
 - **Version:** 0.13.0  
 - **Requires at least:** WordPress 6.0  
-- **Tested up to:** WordPress 6.7  
+- **Tested up to:** WordPress 6.9  
 - **License:** GPLv2 or later  
 
 ---
@@ -39,7 +39,7 @@ Each paint includes:
   - Oil  
   - Lacquer  
 - **Hex colour** (primary swatch)
-- **Metallic colour flag** (optional darker/lighter HEX for metallics & washes; used to render metallic-style swatches)
+- **Gradient Flag** (optional darker/lighter HEX for metallics & shades; used to render metallic/shade-style swatches)
 - **On shelf** (ownership tracking)
 - **Exclude from shading helper**
 - **Linked models/URLs** (repeatable fields)
@@ -99,7 +99,7 @@ Outputs a full dataset including:
 - hex  
 - base type  
 - on shelf  
-- gradient (metallic flag)  
+- gradient (metallic/shade flag)  
 - ranges (pipe-separated)
 
 #### Import
@@ -135,7 +135,7 @@ Under **Paint Colours → Add New**:
 - Add identifier (optional)  
 - Choose base type  
 - Enter main HEX colour  
-- Optionally enter a secondary HEX for metallic paints (used for the metallic-style swatch)  
+- Metallic / Shade options to display a gradient swatch
 - Assign one or more ranges  
 - Mark whether it's “On the shelf”  
 - Add model links if desired  
@@ -196,7 +196,7 @@ Each term will be assigned; missing ranges will be created.
 - **hex**  
 - **base type** (`acrylic`, `enamel`, `oil`, `lacquer`)  
 - **on shelf** (`0` or `1`, optional)  
-- **gradient** (`0` or `1`, optional metallic flag)   
+- **gradient** (`0`, `1`, or `2`, optional; 0 = no gradient, 1 = metallic gradient, 2 = shade gradient) 
 - **ranges** (optional; pipe-separated when using CSV-driven range assignment)
 
 ---

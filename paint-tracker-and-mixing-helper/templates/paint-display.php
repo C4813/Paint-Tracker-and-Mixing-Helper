@@ -110,6 +110,54 @@ if ( ! function_exists( 'pct_gradient_row_background_for_hex_for_table' ) ) {
         );
     }
 }
+
+if ( ! function_exists( 'pct_shade_background_for_hex_for_table' ) ) {
+    function pct_shade_background_for_hex_for_table( $hex ) {
+        if ( ! $hex ) {
+            return '';
+        }
+
+        $hex = trim( (string) $hex );
+        if ( '#' !== substr( $hex, 0, 1 ) ) {
+            $hex = '#' . $hex;
+        }
+
+        // Same as metallic but replace white with black
+        return sprintf(
+            'background:%1$s; background-image: radial-gradient(' .
+            'circle at 50%% 50%%,' .
+            'rgba(0,0,0,0.68) 0%%,' .
+            'rgba(0,0,0,0.42) 20%%,' .
+            '%1$s 100%%' .
+            ');',
+            $hex
+        );
+    }
+}
+
+if ( ! function_exists( 'pct_shade_row_background_for_hex_for_table' ) ) {
+    function pct_shade_row_background_for_hex_for_table( $hex ) {
+        if ( ! $hex ) {
+            return '';
+        }
+
+        $hex = trim( (string) $hex );
+        if ( '#' !== substr( $hex, 0, 1 ) ) {
+            $hex = '#' . $hex;
+        }
+
+        return sprintf(
+            'background:%1$s; background-image: radial-gradient(' .
+            'circle at 40%% 60%%,' .
+            'rgba(0,0,0,0.55) 0%%,' .   // same opacity levels as metallic version but black
+            'rgba(0,0,0,0.30) 40%%,' .
+            '%1$s 100%%' .
+            ');',
+            $hex
+        );
+    }
+}
+
 // Determine mode (fallback to dots).
 $display_mode = isset( $pct_table_display_mode ) ? $pct_table_display_mode : 'dots';
 if ( 'rows' !== $display_mode ) {
@@ -153,20 +201,24 @@ $container_class_attr = implode( ' ', array_map( 'sanitize_html_class', $contain
                     $id     = isset( $paint['id'] ) ? (int) $paint['id'] : 0;
                     $name   = isset( $paint['name'] ) ? $paint['name'] : '';
                     $number = isset( $paint['number'] ) ? $paint['number'] : '';
-                    $hex      = isset( $paint['hex'] ) ? $paint['hex'] : '';
-                    $links    = ( isset( $paint['links'] ) && is_array( $paint['links'] ) ) ? $paint['links'] : [];
-                    $gradient = ! empty( $paint['gradient'] );
+                    $hex          = isset( $paint['hex'] ) ? $paint['hex'] : '';
+                    $links        = ( isset( $paint['links'] ) && is_array( $paint['links'] ) ) ? $paint['links'] : [];
+                    $gradient_type = isset( $paint['gradient'] ) ? (int) $paint['gradient'] : 0;
                     $no_hex_label = __( 'No colour hex', 'paint-tracker-and-mixing-helper' );
                     
                     $swatch_style = '';
                     if ( $hex ) {
-                        if ( $gradient ) {
+                        if ( 1 === $gradient_type ) {
+                            // Metallic
                             $swatch_style = pct_gradient_background_for_hex_for_table( $hex );
+                        } elseif ( 2 === $gradient_type ) {
+                            // Shade
+                            $swatch_style = pct_shade_background_for_hex_for_table( $hex );
                         } else {
                             $swatch_style = 'background-color: ' . $hex . ';';
                         }
                     }
-                    
+
                     // Build shade helper URL if one is configured.
                     // Rows with no hex should NOT be clickable in row-highlight mode,
                     // so we only generate a URL when a hex value exists.
@@ -198,9 +250,13 @@ $container_class_attr = implode( ' ', array_map( 'sanitize_html_class', $contain
                     if ( 'rows' === $display_mode && $hex ) {
                         $text_color = pct_text_color_for_hex_for_table( $hex );
                     
-                        if ( $gradient ) {
-                            // More subtle, full-width row gradient.
+                        if ( 1 === $gradient_type ) {
+                            // Metallic: subtle highlight gradient.
                             $row_style = pct_gradient_row_background_for_hex_for_table( $hex );
+                            $row_style .= ' color:' . $text_color . ';';
+                        } elseif ( 2 === $gradient_type ) {
+                            // Shade: darker gradient version.
+                            $row_style = pct_shade_row_background_for_hex_for_table( $hex );
                             $row_style .= ' color:' . $text_color . ';';
                         } else {
                             $bg_color  = $hex;

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes to display your miniature paint collection, as well as a mixing and shading helper for specific colours.
- * Version: 0.13.0
+ * Version: 0.13.1
  * Author: C4813
  * Text Domain: paint-tracker-and-mixing-helper
  * Domain Path: /languages
@@ -23,6 +23,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
         // Meta keys
         const META_NUMBER        = '_pct_number';
+        const META_TYPE          = '_pct_type';
         const META_HEX           = '_pct_hex';
         const META_ON_SHELF      = '_pct_on_shelf';
         const META_LINKS         = '_pct_links';
@@ -32,7 +33,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_GRADIENT      = '_pct_gradient';
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.13.0';
+        const VERSION = '0.13.1';
 
         public function __construct() {
             add_action( 'init', [ $this, 'register_types' ] );
@@ -131,6 +132,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
          */
         public function render_paint_meta_box( $post ) {
             $number        = get_post_meta( $post->ID, self::META_NUMBER, true );
+            $type          = get_post_meta( $post->ID, self::META_TYPE, true );
             $hex           = get_post_meta( $post->ID, self::META_HEX, true );
             $on_shelf      = get_post_meta( $post->ID, self::META_ON_SHELF, true );
             $links         = get_post_meta( $post->ID, self::META_LINKS, true );
@@ -154,17 +156,19 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             }
 
             wp_nonce_field( 'pct_save_paint_meta', 'pct_paint_meta_nonce' );
-
+            
             $pct_admin_view    = 'meta_box';
             $pct_number        = $number;
+            $pct_type          = $type;
             $pct_hex           = $hex;
             $pct_on_shelf      = $on_shelf;
             $pct_links         = $links;
             $pct_base_type     = $base_type;
             $pct_exclude_shade = (int) $exclude_shade;
             $pct_gradient      = (int) $gradient;
-
+            
             include plugin_dir_path( __FILE__ ) . 'admin/admin-page.php';
+
         }
 
         /**
@@ -215,6 +219,12 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 ? sanitize_text_field( wp_unslash( $_POST['pct_number'] ) )
                 : '';
             update_post_meta( $post_id, self::META_NUMBER, $number );
+            
+            // Save display Type (e.g. Base / Layer)
+            $type = isset( $_POST['pct_type'] )
+                ? sanitize_text_field( wp_unslash( $_POST['pct_type'] ) )
+                : '';
+            update_post_meta( $post_id, self::META_TYPE, $type );
 
             // Save base type (required in UI, but guard + normalise here)
             $base_type = isset( $_POST['pct_base_type'] )
@@ -471,13 +481,19 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             if ( ! current_user_can( 'edit_post', $post_id ) ) {
                 return;
             }
-
+            
             // Save number
             if ( isset( $_POST['pct_number'] ) ) {
                 $number = sanitize_text_field( wp_unslash( $_POST['pct_number'] ) );
                 update_post_meta( $post_id, self::META_NUMBER, $number );
             }
-
+            
+            // Save Type
+            if ( isset( $_POST['pct_type'] ) ) {
+                $type = sanitize_text_field( wp_unslash( $_POST['pct_type'] ) );
+                update_post_meta( $post_id, self::META_TYPE, $type );
+            }
+            
             // Save hex
             if ( isset( $_POST['pct_hex'] ) ) {
                 $hex = sanitize_text_field( wp_unslash( $_POST['pct_hex'] ) );
@@ -660,15 +676,27 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 [
                     'range'   => '',            // empty = all ranges by default
                     'limit'   => -1,
-                    'orderby' => 'meta_number', // or "title"
+                    'orderby' => 'meta_number', // "meta_number", "title" or "type"
                     'shelf'   => 'any',         // 'yes' or 'any'
                 ],
                 $atts,
                 'paint_table'
             );
 
+            // Decide how to order the query.
             $meta_key = self::META_NUMBER;
-            $orderby  = ( $atts['orderby'] === 'title' ) ? 'title' : 'meta_value';
+            $orderby  = 'meta_value';
+
+            if ( 'title' === $atts['orderby'] ) {
+                $orderby  = 'title';
+                $meta_key = '';
+            } elseif ( 'type' === $atts['orderby'] ) {
+                // Order by the "Type" meta field.
+                $meta_key = self::META_TYPE;
+            } else {
+                // Default (and "meta_number") both sort by paint number.
+                $meta_key = self::META_NUMBER;
+            }
 
             $args = [
                 'post_type'      => self::CPT,
@@ -727,6 +755,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 $id       = get_the_ID();
                 $name     = get_the_title();
                 $number   = get_post_meta( $id, self::META_NUMBER, true );
+                $type     = get_post_meta( $id, self::META_TYPE, true );
                 $hex      = get_post_meta( $id, self::META_HEX, true );
                 $gradient = get_post_meta( $id, self::META_GRADIENT, true );
             
@@ -736,6 +765,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     'id'       => $id,
                     'name'     => $name,
                     'number'   => $number,
+                    'type'     => $type,
                     'hex'      => $hex,
                     'links'    => $links,
                     'gradient' => (int) $gradient,
@@ -1363,10 +1393,11 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
              * Import paints from a CSV file.
              *
              * Expected columns:
-             * - title, identifier, hex, base_type, on_shelf (0/1)
+             * - title, identifier, type, hex, base_type, on_shelf (0/1)
              * - ranges (optional; only used when $use_csv_ranges is true)
-             * - gradient (optional)
+             * - gradient (optional; 0 = none, 1 = metallic, 2 = shade)
              */
+
             private function import_csv_file( $file_path, $range_id, $use_csv_ranges = false ) {
 
             if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
@@ -1430,10 +1461,11 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             
                 $title     = isset( $data[0] ) ? sanitize_text_field( $data[0] ) : '';
                 $number    = isset( $data[1] ) ? sanitize_text_field( $data[1] ) : '';
-                $hex       = isset( $data[2] ) ? sanitize_text_field( $data[2] ) : '';
-                $base_type = isset( $data[3] ) ? sanitize_text_field( $data[3] ) : '';
-                $on_shelf  = isset( $data[4] ) ? intval( $data[4] ) : 0;
-            
+                $type      = isset( $data[2] ) ? sanitize_text_field( $data[2] ) : '';
+                $hex       = isset( $data[3] ) ? sanitize_text_field( $data[3] ) : '';
+                $base_type = isset( $data[4] ) ? sanitize_text_field( $data[4] ) : '';
+                $on_shelf  = isset( $data[5] ) ? intval( $data[5] ) : 0;
+
                 // Ranges (optional, only if "Pull range from CSV" is enabled).
                 $range_names = [];
                 if ( $use_csv_ranges && $range_index >= 0 && isset( $data[ $range_index ] ) ) {
@@ -1552,11 +1584,12 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 }
 
                 update_post_meta( $post_id, self::META_NUMBER, $number );
+                update_post_meta( $post_id, self::META_TYPE, $type );
                 update_post_meta( $post_id, self::META_HEX, $hex );
                 update_post_meta( $post_id, self::META_BASE_TYPE, $base_type );
                 update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
                 update_post_meta( $post_id, self::META_GRADIENT, $gradient );
-            
+
                 // Assign to range(s)
                 $term_ids = [];
             
@@ -1612,7 +1645,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             // Header row
             fputcsv(
                 $output,
-                [ 'title', 'identifier', 'hex', 'base_type', 'on_shelf', 'ranges', 'gradient' ]
+                [ 'title', 'identifier', 'type', 'hex', 'base_type', 'on_shelf', 'ranges', 'gradient' ]
             );
 
             // Base query
@@ -1647,11 +1680,12 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
                     $title     = get_the_title();
                     $number    = get_post_meta( $post_id, self::META_NUMBER, true );
+                    $type      = get_post_meta( $post_id, self::META_TYPE, true );
                     $hex       = get_post_meta( $post_id, self::META_HEX, true );
                     $base_type = get_post_meta( $post_id, self::META_BASE_TYPE, true );
                     $on_shelf  = get_post_meta( $post_id, self::META_ON_SHELF, true );
                     $gradient  = get_post_meta( $post_id, self::META_GRADIENT, true );
-                    
+
                     // Normalise gradient to the allowed 0–2 range for CSV output.
                     $gradient = (int) $gradient;
                     if ( $gradient < 0 || $gradient > 2 ) {
@@ -1667,6 +1701,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                         [
                             $title,
                             $number,
+                            $type,
                             $hex,
                             $base_type,
                             $on_shelf,
@@ -1674,6 +1709,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                             $gradient, // <-- write 0/1/2 directly
                         ]
                     );
+
                 }
 
                 wp_reset_postdata();
@@ -1714,7 +1750,12 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         public function manage_custom_column( $column, $post_id ) {
             if ( 'pct_number' === $column ) {
                 $number = get_post_meta( $post_id, self::META_NUMBER, true );
-                echo esc_html( $number );
+                $type   = get_post_meta( $post_id, self::META_TYPE, true );
+                ?>
+                <span class="pct-number-value" data-type="<?php echo esc_attr( $type ); ?>">
+                    <?php echo esc_html( $number ); ?>
+                </span>
+                <?php
             } elseif ( 'pct_ranges' === $column ) {
                 $terms = get_the_terms( $post_id, self::TAX );
                 if ( is_wp_error( $terms ) || empty( $terms ) ) {

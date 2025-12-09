@@ -2,7 +2,7 @@
 
 Comprehensive tools for cataloguing miniature paints, browsing your collection, and performing accurate colour mixing and shading calculations — all inside WordPress.
 
-- **Version:** 0.13.0  
+- **Version:** 0.13.1  
 - **Requires at least:** WordPress 6.0  
 - **Tested up to:** WordPress 6.9  
 - **License:** GPLv2 or later  
@@ -32,14 +32,15 @@ It is designed for miniature painters using systems such as Citadel, Vallejo, Ar
 Each paint includes:
 
 - **Name/title**
-- **Identifier/number** (e.g., `70.861`, “Layer”, “Base”)
+- **Identifier/number** (e.g., `70.861`)
+- **Type** (new field — e.g. Base, Layer, Wash)
 - **Base type**  
   - Acrylic  
   - Enamel  
   - Oil  
   - Lacquer  
 - **Hex colour** (primary swatch)
-- **Gradient Flag** (optional darker/lighter HEX for metallics & shades; used to render metallic/shade-style swatches)
+- **Gradient Flag** (0 = none, 1 = metallic, 2 = shade — used to render metallic/shade-style swatches)
 - **On shelf** (ownership tracking)
 - **Exclude from shading helper**
 - **Linked models/URLs** (repeatable fields)
@@ -49,7 +50,7 @@ Supports:
 
 - Parent/child product lines  
 - Arbitrarily deep hierarchies  
-- Sorted using WordPress' built‑in `term_order`  
+- Sorted using WordPress’ built‑in `term_order`  
 - Used across all shortcodes and the admin UI  
 
 ### ✔ Colour Mixing Helper
@@ -85,7 +86,7 @@ Modes:
 
 Extras:
 
-- Sortable by identifier or name  
+- Sortable by identifier, name, **or type (new)**  
 - Link out to shade helper  
 - Shows missing HEX warnings  
 - Adjustable limits, filtering, and ownership visibility  
@@ -96,6 +97,7 @@ Outputs a full dataset including:
 
 - name  
 - identifier  
+- type  
 - hex  
 - base type  
 - on shelf  
@@ -118,24 +120,15 @@ Supports two modes:
 ### 1. Create Paint Ranges
 Go to **Paint Colours → Paint Ranges** and add ranges matching your paint lines.
 
-Examples:
-
-- Citadel  
-  - Base  
-  - Layer  
-  - Shade  
-- Vallejo  
-  - Model Color  
-  - Game Color  
-
 ### 2. Add Paints
 Under **Paint Colours → Add New**:
 
 - Enter the name  
 - Add identifier (optional)  
+- Add **Type** (optional)  
 - Choose base type  
 - Enter main HEX colour  
-- Metallic / Shade options to display a gradient swatch
+- Metallic / Shade options to display a gradient swatch  
 - Assign one or more ranges  
 - Mark whether it's “On the shelf”  
 - Add model links if desired  
@@ -153,23 +146,23 @@ Full example:
 [paint_table range="vallejo-model-color" limit="-1" orderby="meta_number" shelf="any"]
 ```
 
+Sorting by type:
+
+```
+[paint_table range="two-thin-coats" orderby="type"]
+```
+
 ### 4. Use the Mixing Helper
 
 ```
 [mixing-helper]
 ```
 
-Choose a range → select two paints → set parts → preview mixed colour.
-
 ### 5. Use the Shade Helper
 
 ```
 [shade-helper]
 ```
-
-Select a paint → instantly see recommended darker/lighter paints.
-
-Works seamlessly with swatch-clicking from paint tables.
 
 ### 6. Importing Paints via CSV
 
@@ -179,35 +172,28 @@ Go to **Paint Colours → Import / Export**.
 Choose a range → upload CSV → import.
 
 #### Pull Range from CSV (multi‑range support)
-Tick **Pull range from CSV**.  
+
 CSV must include a header row with a `ranges` column.
-
-Example cell:
-
-```
-Citadel Base|Citadel Layer|Experimental
-```
-
-Each term will be assigned; missing ranges will be created.
 
 #### Expected CSV Columns
 - **name**  
 - **identifier**  
+- **type**  
 - **hex**  
 - **base type** (`acrylic`, `enamel`, `oil`, `lacquer`)  
 - **on shelf** (`0` or `1`, optional)  
-- **gradient** (`0`, `1`, or `2`, optional; 0 = no gradient, 1 = metallic gradient, 2 = shade gradient) 
-- **ranges** (optional; pipe-separated when using CSV-driven range assignment)
+- **gradient** (`0`, `1`, or `2`) 
+- **ranges** (optional; pipe-separated)
 
 ---
 
 ## Shortcodes Summary
 
 ### `[paint_table]`  
-Displays a sortable, filterable paint table.
+Sortable by name, identifier, or **type**.
 
 ### `[mixing-helper]`  
-Interactive two‑paint mixer.
+Interactive mixer.
 
 ### `[shade-helper]`  
 Automatic shading/highlighting assistant.
@@ -215,12 +201,11 @@ Automatic shading/highlighting assistant.
 ---
 
 ## Installation
-
-1. Upload the plugin to `/wp-content/plugins/`.  
-2. Activate it.  
-3. Create paint ranges.  
-4. Add paints manually or import via CSV.  
-5. Insert shortcode(s) into posts or pages.
+1. Upload the plugin  
+2. Activate  
+3. Create ranges  
+4. Add paints or import  
+5. Use shortcodes  
 
 ---
 

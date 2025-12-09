@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes to display your miniature paint collection, as well as a mixing and shading helper for specific colours.
- * Version: 0.13.1
+ * Version: 0.13.2
  * Author: C4813
  * Text Domain: paint-tracker-and-mixing-helper
  * Domain Path: /languages
@@ -33,7 +33,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_GRADIENT      = '_pct_gradient';
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.13.1';
+        const VERSION = '0.13.2';
 
         public function __construct() {
             add_action( 'init', [ $this, 'register_types' ] );
@@ -1423,6 +1423,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $header         = array_map( 'strtolower', $first_row );
             $gradient_index = -1;
             $range_index    = -1;
+            $exclude_index  = -1;
             
             if (
                 in_array( 'title', $header, true )
@@ -1432,6 +1433,11 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 $gradient_index = array_search( 'gradient', $header, true );
                 if ( false === $gradient_index ) {
                     $gradient_index = -1;
+                }
+                
+                $exclude_index = array_search( 'exclude', $header, true );
+                if ( false === $exclude_index ) {
+                    $exclude_index = -1;
                 }
             
                 // When pulling ranges from CSV, also locate the "ranges" column.
@@ -1507,6 +1513,14 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     if ( $gradient !== 0 && $gradient !== 2 ) {
                         $gradient = 1;
                     }
+                }
+                
+                //Exclude-from-shade flag (optional)
+                // 0 = allowed, 1 = excluded from shade helper
+                $exclude_shade = 0;
+                if ( $exclude_index >= 0 && isset( $data[ $exclude_index ] ) ) {
+                    $exclude_cell = trim( (string) $data[ $exclude_index ] );
+                    $exclude_shade = ( $exclude_cell === '1' ) ? 1 : 0;
                 }
 
                 // Normalise hex: allow "2f353a" or "#2f353a" in CSV, but always store "#2f353a"
@@ -1589,6 +1603,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 update_post_meta( $post_id, self::META_BASE_TYPE, $base_type );
                 update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
                 update_post_meta( $post_id, self::META_GRADIENT, $gradient );
+                update_post_meta( $post_id, self::META_EXCLUDE_SHADE, $exclude_shade );
 
                 // Assign to range(s)
                 $term_ids = [];
@@ -1645,7 +1660,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             // Header row
             fputcsv(
                 $output,
-                [ 'title', 'identifier', 'type', 'hex', 'base_type', 'on_shelf', 'ranges', 'gradient' ]
+                [ 'title', 'identifier', 'type', 'hex', 'base_type', 'on_shelf', 'ranges', 'gradient', 'exclude' ]
             );
 
             // Base query
@@ -1706,7 +1721,8 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                             $base_type,
                             $on_shelf,
                             $range_str,
-                            $gradient, // <-- write 0/1/2 directly
+                            $gradient, // 0/1/2
+                            get_post_meta( $post_id, self::META_EXCLUDE_SHADE, true ) ? 1 : 0,
                         ]
                     );
 

@@ -1,10 +1,10 @@
-=== Paint Tracker & Mixing Helper ===
-Contributors: c4813
-Tags: painting, hobby, miniatures, colours, color mixing, tools
+=== Paint Tracker and Mixing Helper ===
+Contributors: C4813
+Tags: painting, hobby, miniatures, colours, tools
 Requires at least: 6.0
-Tested up to: 6.7
+Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 0.12.0
+Stable tag: 0.13.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,7 +26,7 @@ Perfect for hobbyists using Citadel, Vallejo, Army Painter, Two Thin Coats, and 
 - Smart shading + highlighting helper
 - CSV import & export
 - “Pull range from CSV” mode (supports assigning multiple ranges per paint)
-- Optional gradient colour support (for metallics, washes, etc.)
+- Optional metallic colour support (rendered with a gradient-style swatch for metallics, shades, etc.)
 - On-shelf ownership tracking
 - Linked models/URL fields
 - Exclude-from-shading flag for special paints
@@ -43,7 +43,7 @@ Each paint stores:
 - Identifier/number (e.g. 70.861, Layer, Base, Wash)
 - Base type (acrylic, enamel, oil, lacquer)
 - Primary hex colour
-- Optional gradient colour
+- Optional metallic colour
 - On-shelf toggle (ownership tracking)
 - Exclude from shading helper
 - Linked URL fields
@@ -104,7 +104,7 @@ Features:
 - “Parts” ratio input  
 - Real-time mixed colour preview  
 - Base-type compatibility warnings  
-- Gradient blending for metallics/washes  
+- Gradient blending for metallics/shades  
 
 ---
 
@@ -135,8 +135,8 @@ Exports all paints in the selected range, including:
 - hex  
 - base type  
 - on shelf  
-- gradient  
-- ranges (pipe-separated: `Citadel Base|Citadel Layer`)  
+- gradient (metallic or shade flag)  
+- ranges (pipe-separated: `Vallejo|Vallejo Model Color`)  
 
 ---
 
@@ -162,7 +162,7 @@ When enabled:
 3. hex  
 4. base type (`acrylic`, `enamel`, `oil`, `lacquer`)  
 5. on shelf (`0` or `1`, optional)  
-6. gradient (`0` or `1`, optional)  
+6. gradient (`0`, `1`, or `2`, optional; 0 = no gradient, 1 = metallic gradient, 2 = shade gradient) 
 7. ranges (pipe-separated, optional unless in CSV-range mode)
 
 ---

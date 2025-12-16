@@ -1,0 +1,188 @@
+/* ============================
+   Frontend styles: Paint Table
+   ============================ */
+
+/* Outer container – keeps the block centred in the content area */
+.pct-table-container {
+    width: 100%;
+    margin: 20px auto;
+}
+
+/* Optional range title above the table */
+.pct-range-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+/* Wrapper – centers the (auto-width) table and allows scroll if needed */
+.pct-table-wrapper {
+    overflow-x: auto;
+    text-align: center;
+}
+
+/* Core table styling */
+.pct-table-container table.pct-table {
+    border-collapse: collapse;
+    font-size: 14px;
+    table-layout: auto;
+    width: auto !important;
+    display: inline-table;
+    margin: 0 auto;
+}
+
+/* Header background + text (default / dots mode) */
+.pct-table-container table.pct-table thead {
+    background-color: #111827;
+}
+
+.pct-table-container table.pct-table thead th {
+    color: #f9fafb;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* Header styling adjustments when using full-row colour mode */
+.pct-table-container.pct-table-mode-rows table.pct-table thead {
+    background-color: #ffffff !important;
+}
+
+.pct-table-container.pct-table-mode-rows table.pct-table thead th {
+    color: #111827 !important;
+    font-weight: 700 !important;
+}
+
+/* Cells (header + body) */
+.pct-table-container table.pct-table th,
+.pct-table-container table.pct-table td {
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: center;
+}
+
+/* Zebra striping (only when not in row-highlight mode) */
+.pct-table-container:not(.pct-row-highlight-mode) table.pct-table tbody tr:nth-child(odd) td {
+    background-color: #ffffff !important;
+}
+
+.pct-table-container:not(.pct-row-highlight-mode) table.pct-table tbody tr:nth-child(even) td {
+    background-color: #f7f7f7 !important;
+}
+
+/* In row-highlight mode, let inline background colours show */
+.pct-table-container.pct-row-highlight-mode table.pct-table tbody tr td {
+    background-color: transparent !important;
+}
+
+/* Clickable rows (row-highlight mode only) */
+.pct-table-container.pct-row-highlight-mode table.pct-table tbody tr.pct-row-clickable {
+    cursor: pointer;
+}
+
+/*
+ * Row-highlight mode: clearly mark paints that have no hex colour.
+ * - whole row background forced to white
+ * - label sits neatly under the paint name in the name cell.
+ */
+.pct-table-container.pct-row-highlight-mode table.pct-table tbody tr.pct-row-no-hex td {
+    background-color: #ffffff !important;
+}
+
+.pct-table-container.pct-row-highlight-mode table.pct-table tbody tr.pct-row-no-hex .pct-name-cell.pct-no-hex-cell {
+    position: relative;
+    overflow: visible;
+    background-color: #ffffff !important;
+    color: #111827 !important;
+}
+
+/* Under-name "NO COLOUR HEX" label */
+.pct-table-container.pct-row-highlight-mode table.pct-table tbody tr.pct-row-no-hex .pct-name-cell.pct-no-hex-cell::after {
+    content: attr(data-no-hex-label);
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translate(-50%, -0.05em);
+    font-size: 11px;
+    color: rgba(17, 24, 39, 0.38);
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+/* Keep the actual paint name above the label */
+.pct-table-container.pct-row-highlight-mode table.pct-table tbody tr.pct-row-no-hex .pct-name-cell.pct-no-hex-cell .pct-name {
+    display: block;
+    padding-bottom: 2px;
+    position: relative;
+    z-index: 1;
+}
+
+/* ==========================================
+   GLOBAL TABLE LINK RULES – removes ALL underlines
+   ========================================== */
+
+.pct-table-container table.pct-table a {
+    color: inherit !important;
+    text-decoration: none !important;
+    border-bottom: none !important;
+}
+
+.pct-table-container table.pct-table a:hover,
+.pct-table-container table.pct-table a:focus {
+    color: inherit !important;
+    text-decoration: none !important;
+    border-bottom: none !important;
+}
+
+/* Swatch link (dot mode) */
+.pct-swatch-link {
+    text-decoration: none !important;
+    border: none !important;
+}
+
+.pct-swatch-link:hover,
+.pct-swatch-link:focus {
+    text-decoration: none !important;
+    border: none !important;
+}
+
+/* Swatch column */
+.pct-swatch-header {
+    width: 36px;
+}
+
+.pct-swatch-cell {
+    text-align: center;
+}
+
+.pct-swatch {
+    display: inline-block;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45) inset;
+    vertical-align: middle;
+}
+
+/* Colour name */
+.pct-name {
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Number column: narrow */
+.pct-number {
+    width: 90px;
+}
+
+/* Models column: narrow */
+.pct-models {
+    width: 100px;
+}
+
+/* Responsive: hide Models column on very small screens */
+@media (max-width: 640px) {
+    .pct-models-header,
+    .pct-models {
+        display: none;
+    }
+}

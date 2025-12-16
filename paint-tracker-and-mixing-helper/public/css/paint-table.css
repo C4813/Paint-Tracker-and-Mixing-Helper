@@ -25,7 +25,7 @@
     border-collapse: collapse;
     font-size: 14px;
     table-layout: auto;
-    width: auto !important;
+    width: auto;
     display: inline-table;
     margin: 0 auto;
 }
@@ -57,6 +57,13 @@
     padding: 0.4rem 0.5rem;
     border-bottom: 1px solid #e5e7eb;
     text-align: center;
+    line-height: 1.25;
+}
+
+/* Identifier column: do not wrap (table should grow wider instead) */
+.pct-table-container table.pct-table th:nth-child(2),
+.pct-table-container table.pct-table td:nth-child(2) {
+    white-space: nowrap !important;
 }
 
 /* Zebra striping (only when not in row-highlight mode) */
@@ -186,3 +193,12 @@
         display: none;
     }
 }
+
+/* Force shrink-to-fit table width (override theme defaults) */
+.pct-table-container .pct-table-wrapper table.pct-table {
+    width: auto !important;
+    max-width: none !important;
+    display: inline-table !important;
+    table-layout: auto !important;
+}
+

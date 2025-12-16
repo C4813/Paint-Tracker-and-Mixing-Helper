@@ -2,7 +2,7 @@
 
 Comprehensive tools for cataloguing miniature paints, browsing your collection, and performing accurate colour mixing and shading calculations — all inside WordPress.
 
-- **Version:** 0.13.2  
+- **Version:** 0.13.3  
 - **Requires at least:** WordPress 6.0  
 - **Tested up to:** WordPress 6.9  
 - **License:** GPLv2 or later  

@@ -524,15 +524,34 @@ elseif ( 'info_settings' === $pct_admin_view ) : ?>
         </p>
 
         <h3><?php esc_html_e( 'Quick start', 'paint-tracker-and-mixing-helper' ); ?></h3>
+        <p>
+            <?php
+                printf(
+                    wp_kses_post(
+                        __( 'You can download free .csv files to import various paints and ranges from <a href="%s" target="_blank" rel="noopener noreferrer">https://www.scalemodelsbycable.com/paint-ranges</a>.', 'paint-tracker-and-mixing-helper' )
+                    ),
+                        esc_url( 'https://www.scalemodelsbycable.com/paint-ranges/' )
+                    );
+                    ?>
+        </p>
+        <p></p>
+            <?php
+                esc_html_e(
+                    'Or, if you want a more personal approach, you can create your own .csv to import, or:',
+                    'paint-tracker-and-mixing-helper'
+                );
+                ?>
+        </p>
         <ol>
             <li>
                 <?php
                 esc_html_e(
-                    'Create one or more paint ranges under “Paint Colours → Paint Ranges” (for example: Vallejo Model Color, Citadel Layer).',
+                    'Create one or more paint ranges under “Paint Colours → Paint Ranges” (for example: Citadel, Two Thin Coats, Vallejo Model Color).',
                     'paint-tracker-and-mixing-helper'
                 );
                 ?>
             </li>
+
             <li>
                 <?php
                 esc_html_e(
@@ -710,6 +729,7 @@ elseif ( 'info_settings' === $pct_admin_view ) : ?>
             );
             ?>
         </p>
+
         <p>
             <?php
             esc_html_e(
@@ -776,7 +796,92 @@ elseif ( 'info_settings' === $pct_admin_view ) : ?>
                 </tr>
             </table>
         </form>
-
+        <details class="pct-nitty-gritty">
+        <summary class="pct-nitty-gritty-summary">
+        <?php esc_html_e( 'Nitty-gritty details (exact Shade Helper behaviour)', 'paint-tracker-and-mixing-helper' ); ?>
+        </summary>
+        
+        <div class="pct-nitty-gritty-content">
+        
+        <h4><?php esc_html_e( 'What the Shade Helper is actually doing', 'paint-tracker-and-mixing-helper' ); ?></h4>
+        <p>
+        <?php esc_html_e(
+        'When you select a paint, the Shade Helper does not generate colours or gradients. Instead, it searches your real paint collection, filters out unsuitable paints, and builds two ordered ladders around the selected paint. These ladders are rebuilt from scratch every time you change the selection.',
+        'paint-tracker-and-mixing-helper'
+        ); ?>
+        </p>
+        
+        <h4><?php esc_html_e( 'Why there are two ladders', 'paint-tracker-and-mixing-helper' ); ?></h4>
+        <ul>
+        <li><?php esc_html_e( 'Dark ladder: paints darker than the base paint, intended for shadows and recesses.', 'paint-tracker-and-mixing-helper' ); ?></li>
+        <li><?php esc_html_e( 'Light ladder: paints lighter than the base paint, intended for highlights.', 'paint-tracker-and-mixing-helper' ); ?></li>
+        </ul>
+        <p>
+        <?php esc_html_e(
+        'A paint can only ever appear in one ladder. The selected base paint is always fixed between them and never moves.',
+        'paint-tracker-and-mixing-helper'
+        ); ?>
+        </p>
+        
+        <h4><?php esc_html_e( 'Hard rules (always enforced)', 'paint-tracker-and-mixing-helper' ); ?></h4>
+        <ul>
+        <li><?php esc_html_e( 'The selected paint itself is never included.', 'paint-tracker-and-mixing-helper' ); ?></li>
+        <li><?php esc_html_e( 'Paints marked “exclude from shading” are never used.', 'paint-tracker-and-mixing-helper' ); ?></li>
+        <li><?php esc_html_e( 'Ladders never mix flat, metallic, and shade paints — the ladder always matches the finish type of the selected paint.', 'paint-tracker-and-mixing-helper' ); ?></li>
+        <li><?php esc_html_e( 'If a base type is set (e.g. acrylic), only paints with the same base type are used.', 'paint-tracker-and-mixing-helper' ); ?></li>
+        </ul>
+        
+        <h4><?php esc_html_e( 'Strict vs Relaxed ladders', 'paint-tracker-and-mixing-helper' ); ?></h4>
+        <p>
+        <?php esc_html_e(
+        'Strict and Relaxed modes control how broadly the helper searches for candidate paints. They do not change how ladders are ordered.',
+        'paint-tracker-and-mixing-helper'
+        ); ?>
+        </p>
+        
+        <strong><?php esc_html_e( 'Strict mode', 'paint-tracker-and-mixing-helper' ); ?></strong>
+        <ul>
+        <li><?php esc_html_e( 'Paints must share at least one range with the selected paint.', 'paint-tracker-and-mixing-helper' ); ?></li>
+        <li><?php esc_html_e( 'Cross-range matches are excluded.', 'paint-tracker-and-mixing-helper' ); ?></li>
+        </ul>
+        
+        <strong><?php esc_html_e( 'Relaxed mode', 'paint-tracker-and-mixing-helper' ); ?></strong>
+        <ul>
+        <li><?php esc_html_e( 'Paint range matching is not required.', 'paint-tracker-and-mixing-helper' ); ?></li>
+        <li><?php esc_html_e( 'Paints from different ranges may appear.', 'paint-tracker-and-mixing-helper' ); ?></li>
+        <li><?php esc_html_e( 'Colour similarity still matters, but nothing is excluded purely due to range.', 'paint-tracker-and-mixing-helper' ); ?></li>
+        </ul>
+        
+        <h4><?php esc_html_e( 'How paints are split into ladders', 'paint-tracker-and-mixing-helper' ); ?></h4>
+        <p>
+        <?php esc_html_e(
+        'After filtering, paints are compared to the selected paint by lightness. Darker paints go into the dark ladder, lighter paints go into the light ladder. Paints with equal lightness are ignored.',
+        'paint-tracker-and-mixing-helper'
+        ); ?>
+        </p>
+        
+        <h4><?php esc_html_e( 'How paints are ordered inside each ladder', 'paint-tracker-and-mixing-helper' ); ?></h4>
+        <ul>
+        <li><?php esc_html_e( 'Primary factor: difference in lightness from the selected paint.', 'paint-tracker-and-mixing-helper' ); ?></li>
+        <li><?php esc_html_e( 'Secondary factor: hue distance, used only to break ties.', 'paint-tracker-and-mixing-helper' ); ?></li>
+        </ul>
+        <p>
+        <?php esc_html_e(
+        'Dark ladders start with the darkest paints and move toward the base colour. Light ladders start with the closest highlight and move toward the lightest paint.',
+        'paint-tracker-and-mixing-helper'
+        ); ?>
+        </p>
+        
+        <h4><?php esc_html_e( 'Limits and non-features', 'paint-tracker-and-mixing-helper' ); ?></h4>
+        <ul>
+        <li><?php esc_html_e( 'Each ladder has a maximum size; excess paints are discarded.', 'paint-tracker-and-mixing-helper' ); ?></li>
+        <li><?php esc_html_e( 'No colours are generated, blended, or interpolated.', 'paint-tracker-and-mixing-helper' ); ?></li>
+        <li><?php esc_html_e( 'Paint numbers, names, and brands are never used for ordering.', 'paint-tracker-and-mixing-helper' ); ?></li>
+        <li><?php esc_html_e( 'Every ladder is rebuilt fresh when you change the selection.', 'paint-tracker-and-mixing-helper' ); ?></li>
+        </ul>
+        
+        </div>
+        </details>
         <hr>
 
         <h2><?php esc_html_e( 'Importing paints from CSV', 'paint-tracker-and-mixing-helper' ); ?></h2>

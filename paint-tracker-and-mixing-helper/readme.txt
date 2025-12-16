@@ -4,7 +4,7 @@ Tags: painting, hobby, miniatures, colours, tools
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 0.13.2
+Stable tag: 0.13.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -124,5 +124,4 @@ Uses `ranges` column, pipe‑separated.
 * Added support for ordering paint tables by Type
 * Updated readme files to document new Type field and CSV changes
 * Internal consistency improvements for gradient/metallic/shade flags
-
 

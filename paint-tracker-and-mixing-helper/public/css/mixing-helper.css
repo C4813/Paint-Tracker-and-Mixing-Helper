@@ -1,0 +1,90 @@
+/* ============================
+   Mixing helper – main mixer
+   ============================ */
+
+.pct-mix-container {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 20px auto;
+    max-width: 640px;
+}
+
+.pct-mix-header {
+    font-weight: 600;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+/* Two-column layout for Paint 1 / Paint 2 */
+.pct-mix-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+/*
+ * Column sizing:
+ * - flex-basis gives a sensible minimum
+ * - alignment & dropdown sizing handled in dropdowns.css
+ */
+.pct-mix-column {
+    flex: 1 1 220px;
+}
+
+.pct-mix-column-shade {
+    flex: 0 0 auto;
+}
+
+/* Parts input */
+.pct-mix-parts {
+    width: 50px;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid #d1d5db;
+}
+
+/* Stack columns on small screens */
+@media (max-width: 640px) {
+    .pct-mix-row {
+        flex-direction: column;
+    }
+}
+
+/* ============================
+   Result display
+   ============================ */
+
+.pct-mix-result-block {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+    gap: 8px;
+}
+
+.pct-mix-result-label {
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.pct-mix-result-hex {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.pct-mix-result-swatch {
+    display: none;
+    width: 5rem;
+    height: 5rem;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+}

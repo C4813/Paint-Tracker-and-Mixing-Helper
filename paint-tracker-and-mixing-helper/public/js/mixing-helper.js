@@ -28,30 +28,36 @@ jQuery( function( $ ) {
     function filterPaintOptions( $column, rangeId ) {
         var $dropdown = $column.find( '.pct-mix-dropdown' );
         var $list     = $dropdown.find( '.pct-mix-list' );
-        var $options  = $list.find( '.pct-mix-option' );
 
-        if ( ! rangeId ) {
-            $options.show();
-        } else {
-            var selected = String( rangeId );
+        var ajaxUrl = ( window.pctMixingHelperL10n && window.pctMixingHelperL10n.ajaxUrl ) ? window.pctMixingHelperL10n.ajaxUrl : '';
+        var nonce   = ( window.pctMixingHelperL10n && window.pctMixingHelperL10n.nonce ) ? window.pctMixingHelperL10n.nonce : '';
 
-            $options.each( function() {
-                var $opt       = $( this );
-                var shouldShow = window.pctColorUtils.optionMatchesRange( $opt, selected );
-
-                $opt.toggle( shouldShow );
-            } );
+        if ( ! ajaxUrl || ! nonce ) {
+            return;
         }
 
-        $dropdown.find( '.pct-mix-value' ).val( '' );
-        $dropdown.attr( 'data-hex', '' );
-        $dropdown.removeAttr( 'data-base-type' );
-        $dropdown.removeAttr( 'data-gradient' );
-        $list.find( '.pct-mix-option' ).removeClass( 'is-selected' );
-        $dropdown.find( '.pct-mix-trigger-label' ).text(
-            pctMixL10n( 'selectPaint', 'Select a paint' )
-        );
-        $dropdown.find( '.pct-mix-trigger-swatch' ).css( 'background-color', 'transparent' );
+        $.post(
+            ajaxUrl,
+            {
+                action:   'pct_get_range_paints',
+                nonce:    nonce,
+                range_id: rangeId ? parseInt( rangeId, 10 ) : 0
+            }
+        ).done( function( resp ) {
+            if ( resp && resp.success && resp.data && typeof resp.data.html === 'string' ) {
+                $list.html( resp.data.html );
+            }
+
+            $dropdown.find( '.pct-mix-value' ).val( '' );
+            $dropdown.attr( 'data-hex', '' );
+            $dropdown.removeAttr( 'data-base-type' );
+            $dropdown.removeAttr( 'data-gradient' );
+            $list.find( '.pct-mix-option' ).removeClass( 'is-selected' );
+            $dropdown.find( '.pct-mix-trigger-label' ).text(
+                pctMixL10n( 'selectPaint', 'Select a paint' )
+            );
+            $dropdown.find( '.pct-mix-trigger-swatch' ).css( 'background-color', 'transparent' );
+        } );
     }
 
     // ---------- Paint dropdowns ----------
@@ -106,6 +112,10 @@ jQuery( function( $ ) {
             var $mixContainer = $dropdown.closest( '.pct-mix-container' );
 
             if ( $mixContainer.length ) {
+                // Reload paint option lists based on selected range.
+                filterPaintOptions( $mixContainer.find( '.pct-mix-column-left' ),  rangeId );
+                filterPaintOptions( $mixContainer.find( '.pct-mix-column-right' ), rangeId );
+
                 updateMix( $mixContainer );
             }
         } );

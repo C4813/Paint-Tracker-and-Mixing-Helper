@@ -10,6 +10,21 @@ jQuery( function( $ ) {
     var mixColors       = window.pctColorUtils.mixColors;
     var textColorForHex = window.pctColorUtils.textColorForHex;
     
+    
+    // Escape text for safe insertion into HTML strings.
+    function escapeHtml( input ) {
+        return String( input || '' ).replace( /[&<>"']/g, function( ch ) {
+            switch ( ch ) {
+                case '&': return '&amp;';
+                case '<': return '&lt;';
+                case '>': return '&gt;';
+                case '"': return '&quot;';
+                case "'": return '&#039;';
+                default:  return ch;
+            }
+        } );
+    }
+
     $( document ).on( 'click', function() {
         closeAllDropdowns();
     } );
@@ -676,7 +691,7 @@ jQuery( function( $ ) {
                     styleInline = 'color: #000;';
                     row.hex     = '';
                 } else if ( row.type === 'base' ) {
-                    var baseLine = baseLabel || baseHex.toUpperCase();
+                    var baseLine = baseLabel ? escapeHtml( baseLabel ) : baseHex.toUpperCase();
 
                     mainHtml = '<div class="pct-shade-line">' + baseLine + '</div>';
 
@@ -701,8 +716,8 @@ jQuery( function( $ ) {
                             ' color: ' + textColorBase + ';';
                     }
                 } else if ( row.ratio ) {
-                    var other      = row.otherLabel || '';
-                    var baseLine2  = baseLabel || baseHex.toUpperCase();
+                    var other      = row.otherLabel ? escapeHtml( row.otherLabel ) : '';
+                    var baseLine2  = baseLabel ? escapeHtml( baseLabel ) : baseHex.toUpperCase();
                     var baseParts  = row.ratio[0];
                     var otherParts = row.ratio[1];
 
@@ -735,7 +750,7 @@ jQuery( function( $ ) {
                             ' color: ' + textColorMix + ';';
                     }
                 } else {
-                    var fallbackText = baseLabel || baseHex.toUpperCase();
+                    var fallbackText = baseLabel ? escapeHtml( baseLabel ) : baseHex.toUpperCase();
 
                     mainHtml = '<div class="pct-shade-line">' + fallbackText + '</div>';
 

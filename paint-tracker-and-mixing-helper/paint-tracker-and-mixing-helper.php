@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes to display your miniature paint collection, as well as a mixing and shading helper for specific colours.
- * Version: 0.13.3
+ * Version: 0.13.4
  * Author: C4813
  * Text Domain: paint-tracker-and-mixing-helper
  * Domain Path: /languages
@@ -33,7 +33,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_GRADIENT      = '_pct_gradient';
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.13.3';
+        const VERSION = '0.13.4';
 
         /**
          * Centralized sanitizers for paint meta.
@@ -94,6 +94,10 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
             // Frontend assets
             add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_frontend_assets' ] );
+
+            // AJAX: fetch paints for a selected range (mixing/shade helpers).
+            add_action( 'wp_ajax_pct_get_range_paints', [ $this, 'ajax_get_range_paints' ] );
+            add_action( 'wp_ajax_nopriv_pct_get_range_paints', [ $this, 'ajax_get_range_paints' ] );
 
             // Shortcodes
             add_shortcode( 'paint_table', [ $this, 'shortcode_paint_table' ] );
@@ -712,8 +716,11 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     'pctMixingHelperL10n',
                     [
                         'selectPaint' => __( 'Select a paint', 'paint-tracker-and-mixing-helper' ),
+                        'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+                        'nonce'       => wp_create_nonce( 'pct_get_range_paints' ),
                     ]
                 );
+
             }
 
             // Shade helper.
@@ -733,15 +740,17 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     'pct_shade_helper',
                     'pctShadeHelperL10n',
                     [
-                        'selectPaint'      => __( 'Select a paint to generate lighter and darker mixes.', 'paint-tracker-and-mixing-helper' ),
-                        'invalidHex'       => __( 'This colour has an invalid hex value.', 'paint-tracker-and-mixing-helper' ),
-                        'noSelectedPaint'  => __( 'Could not determine the selected paint in this range.', 'paint-tracker-and-mixing-helper' ),
-                        'noRange'          => __( 'This paint is not assigned to a range.', 'paint-tracker-and-mixing-helper' ),
-                        'notEnoughPaints'  => __( 'Not enough paints in this range to build a shade ladder.', 'paint-tracker-and-mixing-helper' ),
-                        'unableToGenerate' => __( 'Unable to generate mixes for this colour.', 'paint-tracker-and-mixing-helper' ),
-                        'noDarker'         => __( 'Not enough darker paints to generate darker mixes.', 'paint-tracker-and-mixing-helper' ),
-                        'noLighter'        => __( 'Not enough lighter paints to generate lighter mixes.', 'paint-tracker-and-mixing-helper' ),
+                        'selectPaint'      => __( 'Select a paint', 'paint-tracker-and-mixing-helper' ),
+                        'invalidHex'       => __( 'This co...has an invalid hex value.', 'paint-tracker-and-mixing-helper' ),
+                        'noSelectedPaint'  => __( 'Could n...cted paint in this range.', 'paint-tracker-and-mixing-helper' ),
+                        'noRange'          => __( 'This pa... not assigned to a range.', 'paint-tracker-and-mixing-helper' ),
+                        'notEnoughPaints'  => __( 'Not eno... to build a shade ladder.', 'paint-tracker-and-mixing-helper' ),
+                        'unableToGenerate' => __( 'Unable ...te mixes for this colour.', 'paint-tracker-and-mixing-helper' ),
+                        'noDarker'         => __( 'Not eno...to generate darker mixes.', 'paint-tracker-and-mixing-helper' ),
+                        'noLighter'        => __( 'Not eno...o generate lighter mixes.', 'paint-tracker-and-mixing-helper' ),
                         'hueMode'          => $shade_mode, // 'strict' or 'relaxed'
+                        'ajaxUrl'          => admin_url( 'admin-ajax.php' ),
+                        'nonce'            => wp_create_nonce( 'pct_get_range_paints' ),
                     ]
                 );
             }
@@ -766,7 +775,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
             // Decide how to order the query.
             $meta_key = self::META_NUMBER;
-            $orderby  = 'meta_value';
+            $orderby  = 'meta_value_num';
 
             if ( 'title' === $atts['orderby'] ) {
                 $orderby  = 'title';
@@ -774,9 +783,11 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             } elseif ( 'type' === $atts['orderby'] ) {
                 // Order by the "Type" meta field.
                 $meta_key = self::META_TYPE;
+                $orderby  = 'meta_value';
             } else {
                 // Default (and "meta_number") both sort by paint number.
                 $meta_key = self::META_NUMBER;
+                $orderby  = 'meta_value_num';
             }
 
             $args = [
@@ -1206,7 +1217,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 }
         
                 if ( 1 === $gradient ) {
-                    // Metallic: white highlight near the left.
+                    // Metallic: white highlight near the right.
                     $style = sprintf(
                         'background:%1$s;color:%2$s;background-image: radial-gradient(' .
                         'circle at 90%% 50%%,' .
@@ -1255,6 +1266,100 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 </div>
                 <?php
             }
+        }
+        
+        /**
+         * AJAX: Return paint dropdown options HTML for a given range.
+         *
+         * - range_id = 0 => all paints
+         * - range_id > 0 => only paints in that range (includes children)
+         */
+        public function ajax_get_range_paints() {
+            check_ajax_referer( 'pct_get_range_paints', 'nonce' );
+
+            $range_id = isset( $_POST['range_id'] ) ? intval( $_POST['range_id'] ) : 0;
+
+            $args = [
+                'post_type'      => self::CPT,
+                'post_status'    => 'publish',
+                'posts_per_page' => -1,
+                'orderby'        => 'meta_value_num',
+                'order'          => 'ASC',
+                'meta_key'       => self::META_NUMBER,
+            ];
+
+            if ( $range_id > 0 ) {
+                $args['tax_query'] = [
+                    [
+                        'taxonomy'         => self::TAX,
+                        'field'            => 'term_id',
+                        'terms'            => $range_id,
+                        'include_children' => true,
+                    ],
+                ];
+            }
+
+            $q = new WP_Query( $args );
+
+            $paints = [];
+
+            if ( $q->have_posts() ) {
+                while ( $q->have_posts() ) {
+                    $q->the_post();
+                    $post_id = get_the_ID();
+
+                    $name                 = get_the_title();
+                    $number               = get_post_meta( $post_id, self::META_NUMBER, true );
+                    $hex                  = get_post_meta( $post_id, self::META_HEX, true );
+                    $base_type            = get_post_meta( $post_id, self::META_BASE_TYPE, true );
+                    $exclude_from_shading = get_post_meta( $post_id, self::META_EXCLUDE_SHADE, true ) ? 1 : 0;
+                    $gradient             = get_post_meta( $post_id, self::META_GRADIENT, true );
+
+                    $term_ids = wp_get_object_terms(
+                        $post_id,
+                        self::TAX,
+                        [
+                            'fields' => 'ids',
+                        ]
+                    );
+
+                    $first_range_id = ! empty( $term_ids ) ? (int) $term_ids[0] : 0;
+
+                    $all_range_ids = [];
+                    if ( $first_range_id ) {
+                        $all_range_ids[] = $first_range_id;
+
+                        $parent_id = (int) get_term_field( 'parent', $first_range_id, self::TAX );
+                        while ( $parent_id ) {
+                            $all_range_ids[] = $parent_id;
+                            $parent_id = (int) get_term_field( 'parent', $parent_id, self::TAX );
+                        }
+                    }
+
+                    $paints[] = [
+                        'id'              => $post_id,
+                        'name'            => $name,
+                        'number'          => $number,
+                        'hex'             => $hex,
+                        'range_id'        => $first_range_id,
+                        'all_range_ids'   => $all_range_ids,
+                        'exclude_shading' => $exclude_from_shading,
+                        'gradient'        => (int) $gradient,
+                    ];
+                }
+            }
+
+            wp_reset_postdata();
+
+            ob_start();
+            self::render_mix_paint_options( $paints );
+            $html = ob_get_clean();
+
+            wp_send_json_success(
+                [
+                    'html' => $html,
+                ]
+            );
         }
 
         /**
@@ -1390,7 +1495,12 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
                     $uploaded_file = wp_handle_upload(
                         $_FILES['pct_csv'],
-                        [ 'test_form' => false ]
+                        [
+                            'test_form' => false,
+                            'mimes'     => [
+                                'csv' => 'text/csv',
+                            ],
+                        ]
                     );
 
                     if ( isset( $uploaded_file['error'] ) ) {
@@ -1623,7 +1733,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                     continue;
                 }
 
-                // Check for an existing paint with the same title, code/type, base type and hex.
+                // Check for an existing paint with the same title, identifier, type, base type and hex.
                 // If found, skip this row to avoid duplicates.
                 $existing_posts = get_posts(
                     [
@@ -1636,6 +1746,10 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                             [
                                 'key'   => self::META_NUMBER,
                                 'value' => $number,
+                            ],
+                            [
+                                'key'   => self::META_TYPE,
+                                'value' => $type,
                             ],
                             [
                                 'key'   => self::META_HEX,
@@ -1916,14 +2030,14 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             // If user explicitly clicked the Number column
             if ( 'pct_number' === $orderby ) {
                 $query->set( 'meta_key', self::META_NUMBER );
-                $query->set( 'orderby', 'meta_value' );
+                $query->set( 'orderby', 'meta_value_num' );
                 return;
             }
 
             // No explicit order set (initial load) → default to Number ASC
             if ( empty( $orderby ) ) {
                 $query->set( 'meta_key', self::META_NUMBER );
-                $query->set( 'orderby', 'meta_value' );
+                $query->set( 'orderby', 'meta_value_num' );
                 $query->set( 'order', 'ASC' );
             }
         }

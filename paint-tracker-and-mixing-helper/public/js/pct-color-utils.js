@@ -86,6 +86,51 @@
         return lum < 0.5 ? '#f9fafb' : '#111827';
     }
 
+    /**
+     * Build a gradient CSS payload for metallic (1) or shade (2).
+     * Returns { background, backgroundImage, color }.
+     */
+    function gradientCss( hex, textColor, gradientType ) {
+        if ( ! hex ) {
+            return null;
+        }
+
+        gradientType = parseInt( gradientType, 10 ) || 0;
+
+        // 0 = no gradient
+        if ( gradientType === 0 ) {
+            return {
+                background: hex,
+                backgroundImage: '',
+                color: textColor
+            };
+        }
+
+        var stops;
+
+        if ( gradientType === 2 ) {
+            stops =
+                'circle at 90% 50%,' +
+                'rgba(0,0,0,0.68) 0%,' +
+                'rgba(0,0,0,0.42) 20%,' +
+                'rgba(0,0,0,0.24) 36%,' +
+                'rgba(0,0,0,0) 58%';
+        } else {
+            stops =
+                'circle at 90% 50%,' +
+                'rgba(255,255,255,0.68) 0%,' +
+                'rgba(255,255,255,0.42) 20%,' +
+                'rgba(255,255,255,0.24) 36%,' +
+                'rgba(0,0,0,0) 58%';
+        }
+
+        return {
+            background: hex,
+            backgroundImage: 'radial-gradient(' + stops + ')',
+            color: textColor
+        };
+    }
+
     // Helper: does this option belong to the selected range or one of its parents?
     function optionMatchesRange( $opt, selectedRangeId ) {
         var selected     = String( selectedRangeId );
@@ -127,22 +172,6 @@
         };
     }
 
-    // Close all mix and range dropdowns on the page.
-    function closeAllDropdowns() {
-        var $ = window.jQuery;
-
-        if ( ! $ ) {
-            return;
-        }
-
-        $( '.pct-mix-dropdown, .pct-mix-range-dropdown' ).each( function() {
-            var $dd = $( this );
-
-            $dd.removeClass( 'pct-mix-open' );
-            $dd.find( '.pct-mix-list' ).attr( 'hidden', 'hidden' );
-        } );
-    }
-
     // Expose helpers.
     window.pctColorUtils.hexToRgb           = hexToRgb;
     window.pctColorUtils.rgbToHex           = rgbToHex;
@@ -150,6 +179,6 @@
     window.pctColorUtils.textColorForHex    = textColorForHex;
     window.pctColorUtils.optionMatchesRange = optionMatchesRange;
     window.pctColorUtils.makeL10nHelper     = makeL10nHelper;
-    window.pctColorUtils.closeAllDropdowns  = closeAllDropdowns;
+    window.pctColorUtils.gradientCss        = gradientCss;
 
 }( window ) );

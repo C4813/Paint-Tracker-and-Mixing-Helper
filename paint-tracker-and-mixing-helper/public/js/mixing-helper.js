@@ -110,14 +110,10 @@ jQuery( function( $ ) {
             closeAllDropdowns();
 
             var $mixContainer = $dropdown.closest( '.pct-mix-container' );
-
             if ( $mixContainer.length ) {
-                // Reload paint option lists based on selected range.
-                filterPaintOptions( $mixContainer.find( '.pct-mix-column-left' ),  rangeId );
-                filterPaintOptions( $mixContainer.find( '.pct-mix-column-right' ), rangeId );
-
                 updateMix( $mixContainer );
             }
+
         } );
     }
 
@@ -151,12 +147,10 @@ jQuery( function( $ ) {
 
             closeAllDropdowns();
 
-            var $column = $dropdown.closest( '.pct-mix-column' );
-            filterPaintOptions( $column, rangeId );
-
             var $mixContainer = $dropdown.closest( '.pct-mix-container' );
-
             if ( $mixContainer.length ) {
+                filterPaintOptions( $mixContainer.find( '.pct-mix-column-left' ),  rangeId );
+                filterPaintOptions( $mixContainer.find( '.pct-mix-column-right' ), rangeId );
                 updateMix( $mixContainer );
             }
         } );
@@ -172,9 +166,17 @@ jQuery( function( $ ) {
 
         var hexLeft  = $leftDropdown.find( '.pct-mix-value' ).val() || '';
         var hexRight = $rightDropdown.find( '.pct-mix-value' ).val() || '';
-
+        
         var partsLeft  = parseInt( $leftParts.val(), 10 );
         var partsRight = parseInt( $rightParts.val(), 10 );
+        
+        if ( ! isFinite( partsLeft ) || partsLeft <= 0 ) {
+            partsLeft = 1;
+        }
+        
+        if ( ! isFinite( partsRight ) || partsRight <= 0 ) {
+            partsRight = 1;
+        }
 
         var baseTypeLeft   = $leftDropdown.attr( 'data-base-type' ) || '';
         var baseTypeRight  = $rightDropdown.attr( 'data-base-type' ) || '';
@@ -202,14 +204,7 @@ jQuery( function( $ ) {
             $resultSwatch.hide();
         }
 
-        if (
-            ! hexLeft ||
-            ! hexRight ||
-            ! partsLeft ||
-            ! partsRight ||
-            partsLeft <= 0 ||
-            partsRight <= 0
-        ) {
+        if ( ! hexLeft || ! hexRight ) {
             $resultBlock.hide();
             return;
         }

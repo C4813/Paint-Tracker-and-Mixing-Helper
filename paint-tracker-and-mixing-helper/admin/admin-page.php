@@ -534,7 +534,7 @@ elseif ( 'info_settings' === $pct_admin_view ) : ?>
                     );
                     ?>
         </p>
-        <p></p>
+        <p>
             <?php
                 esc_html_e(
                     'Or, if you want a more personal approach, you can create your own .csv to import, or:',

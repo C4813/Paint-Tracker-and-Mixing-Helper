@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Paint Tracker and Mixing Helper
  * Description: Shortcodes to display your miniature paint collection, as well as a mixing and shading helper for specific colours.
- * Version: 0.13.4
+ * Version: 0.13.5
  * Author: C4813
  * Text Domain: paint-tracker-and-mixing-helper
  * Domain Path: /languages
@@ -33,7 +33,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         const META_GRADIENT      = '_pct_gradient';
 
         // Plugin version (used for asset cache-busting)
-        const VERSION = '0.13.4';
+        const VERSION = '0.13.5';
 
         /**
          * Centralized sanitizers for paint meta.
@@ -264,13 +264,13 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
             // Save number (code / type)
             $number = isset( $_POST['pct_number'] )
-                ? $this->sanitize_paint_number( wp_unslash( $_POST['pct_number'] ) )
+                ? $this->sanitize_paint_number( wp_unslash( $_POST['pct_number'] ) ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
                 : '';
             update_post_meta( $post_id, self::META_NUMBER, $number );
             
             // Save display Type (e.g. Base / Layer)
             $type = isset( $_POST['pct_type'] )
-                ? $this->sanitize_paint_type( wp_unslash( $_POST['pct_type'] ) )
+                ? $this->sanitize_paint_type( wp_unslash( $_POST['pct_type'] ) ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
                 : '';
             update_post_meta( $post_id, self::META_TYPE, $type );
 
@@ -288,7 +288,7 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
             // Save hex
             $hex = isset( $_POST['pct_hex'] )
-                ? $this->sanitize_paint_hex( wp_unslash( $_POST['pct_hex'] ) )
+                ? $this->sanitize_paint_hex( wp_unslash( $_POST['pct_hex'] ) ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
                 : '';
             update_post_meta( $post_id, self::META_HEX, $hex );
             
@@ -296,9 +296,12 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             // 0 = flat, 1 = metallic, 2 = shade.
             $gradient_type = 0;
 
-            $has_metallic = ! empty( $_POST['pct_gradient_metallic'] );
-            $has_shade    = ! empty( $_POST['pct_gradient_shade'] );
-
+            $has_metallic = isset( $_POST['pct_gradient_metallic'] )
+                ? $this->sanitize_bool01( wp_unslash( $_POST['pct_gradient_metallic'] ) ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+                : 0;
+            $has_shade = isset( $_POST['pct_gradient_shade'] )
+                ? $this->sanitize_bool01( wp_unslash( $_POST['pct_gradient_shade'] ) ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+                : 0;
             if ( $has_shade ) {
                 // If both are ticked somehow, shade "wins".
                 $gradient_type = 2;
@@ -309,11 +312,15 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             update_post_meta( $post_id, self::META_GRADIENT, $gradient_type );
 
             // Save on-shelf flag
-            $on_shelf = isset( $_POST['pct_on_shelf'] ) ? 1 : 0;
+            $on_shelf = isset( $_POST['pct_on_shelf'] )
+                ? $this->sanitize_bool01( wp_unslash( $_POST['pct_on_shelf'] ) ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+                : 0;
             update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
 
             // Save "exclude from shading helper" flag
-            $exclude_shade = isset( $_POST['pct_exclude_shade'] ) ? 1 : 0;
+            $exclude_shade = isset( $_POST['pct_exclude_shade'] )
+                ? $this->sanitize_bool01( wp_unslash( $_POST['pct_exclude_shade'] ) ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+                : 0;
             update_post_meta( $post_id, self::META_EXCLUDE_SHADE, $exclude_shade );
 
             // -------- Save multiple links (legacy format: pct_links_title[] + pct_links_url[]) --------
@@ -322,12 +329,12 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $raw_titles = [];
             $raw_urls   = [];
 
-            if ( isset( $_POST['pct_links_title'] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-                $raw_titles = wp_unslash( $_POST['pct_links_title'] );
+            if ( isset( $_POST['pct_links_title'] ) ) {
+                $raw_titles = wp_unslash( $_POST['pct_links_title'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
             }
-
-            if ( isset( $_POST['pct_links_url'] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-                $raw_urls = wp_unslash( $_POST['pct_links_url'] );
+            
+            if ( isset( $_POST['pct_links_url'] ) ) {
+                $raw_urls = wp_unslash( $_POST['pct_links_url'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
             }
 
             if ( ! is_array( $raw_titles ) ) {
@@ -476,7 +483,12 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
                 $exclude_shade = ( '1' === $bulk_exclude_val ) ? 1 : 0;
             }
 
-            $post_ids = array_map( 'absint', (array) $_REQUEST['post'] );
+            $post_ids_raw = wp_unslash( $_REQUEST['post'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+            
+            $post_ids = array_map(
+                'absint',
+                (array) $post_ids_raw
+            );
 
             foreach ( $post_ids as $post_id ) {
                 if ( ! $post_id ) {
@@ -531,32 +543,37 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             }
             
             if ( isset( $_POST['pct_number'] ) ) {
-                $number = $this->sanitize_paint_number( wp_unslash( $_POST['pct_number'] ) );
+                $number = $this->sanitize_paint_number( wp_unslash( $_POST['pct_number'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
                 update_post_meta( $post_id, self::META_NUMBER, $number );
             }
 
             if ( isset( $_POST['pct_type'] ) ) {
-                $type = $this->sanitize_paint_type( wp_unslash( $_POST['pct_type'] ) );
+                $type = $this->sanitize_paint_type( wp_unslash( $_POST['pct_type'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
                 update_post_meta( $post_id, self::META_TYPE, $type );
             }
 
             if ( isset( $_POST['pct_hex'] ) ) {
-                $hex = $this->sanitize_paint_hex( wp_unslash( $_POST['pct_hex'] ) );
+                $hex = $this->sanitize_paint_hex( wp_unslash( $_POST['pct_hex'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
                 update_post_meta( $post_id, self::META_HEX, $hex );
             }
 
             if ( isset( $_POST['pct_base_type'] ) ) {
-                $base_type = $this->sanitize_base_type( wp_unslash( $_POST['pct_base_type'] ) );
+                $base_type = $this->sanitize_base_type( wp_unslash( $_POST['pct_base_type'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
                 if ( '' !== $base_type ) {
                     update_post_meta( $post_id, self::META_BASE_TYPE, $base_type );
                 }
             }
 
-            $on_shelf = isset( $_POST['pct_on_shelf'] ) ? 1 : 0;
-            update_post_meta( $post_id, self::META_ON_SHELF, $this->sanitize_bool01( $on_shelf ) );
+            $on_shelf = isset( $_POST['pct_on_shelf'] )
+                ? $this->sanitize_bool01( wp_unslash( $_POST['pct_on_shelf'] ) ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+                : 0;
+            update_post_meta( $post_id, self::META_ON_SHELF, $on_shelf );
+            
+            $exclude_shade = isset( $_POST['pct_exclude_shade'] )
+                ? $this->sanitize_bool01( wp_unslash( $_POST['pct_exclude_shade'] ) ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+                : 0;
+            update_post_meta( $post_id, self::META_EXCLUDE_SHADE, $exclude_shade );
 
-            $exclude_shade = isset( $_POST['pct_exclude_shade'] ) ? 1 : 0;
-            update_post_meta( $post_id, self::META_EXCLUDE_SHADE, $this->sanitize_bool01( $exclude_shade ) );
         }
 
         /**
@@ -1277,7 +1294,9 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
         public function ajax_get_range_paints() {
             check_ajax_referer( 'pct_get_range_paints', 'nonce' );
 
-            $range_id = isset( $_POST['range_id'] ) ? intval( $_POST['range_id'] ) : 0;
+            $range_id = isset( $_POST['range_id'] )
+                ? absint( wp_unslash( $_POST['range_id'] ) )
+                : 0;
 
             $args = [
                 'post_type'      => self::CPT,
@@ -1470,38 +1489,56 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
             $message = '';
             $errors  = [];
         
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing
-            $use_csv_ranges = ! empty( $_POST['pct_pull_range_from_csv'] );
-        
+            $use_csv_ranges = false;
+            
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             if ( isset( $_POST['pct_import_submit'] ) ) {
                 check_admin_referer( 'pct_import_paints', 'pct_import_nonce' );
-        
+            
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+            $use_csv_ranges = isset( $_POST['pct_pull_range_from_csv'] )
+                ? (bool) sanitize_text_field( wp_unslash( $_POST['pct_pull_range_from_csv'] ) )
+                : false;
+                // phpcs:ignore WordPress.Security.NonceVerification.Recommended
                 if ( $use_csv_ranges ) {
                     // When pulling from CSV, we ignore the dropdown completely.
                     $range_id = 0;
                 } else {
-                    $range_id = isset( $_POST['pct_range'] ) ? intval( $_POST['pct_range'] ) : 0;
+                // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                $range_id = isset( $_POST['pct_range'] )
+                    ? absint( wp_unslash( $_POST['pct_range'] ) )
+                    : 0;
                     if ( ! $range_id ) {
                         $errors[] = __( 'Please choose a paint range.', 'paint-tracker-and-mixing-helper' );
                     }
                 }
 
+                // phpcs:ignore WordPress.Security.NonceVerification.Recommended
                 if ( empty( $_FILES['pct_csv']['tmp_name'] ) ) {
                     $errors[] = __( 'Please upload a CSV file.', 'paint-tracker-and-mixing-helper' );
                 }
 
                 if ( empty( $errors ) ) {
                     require_once ABSPATH . 'wp-admin/includes/file.php';
-
-                    $uploaded_file = wp_handle_upload(
-                        $_FILES['pct_csv'],
-                        [
-                            'test_form' => false,
-                            'mimes'     => [
-                                'csv' => 'text/csv',
-                            ],
-                        ]
-                    );
+                   
+                    // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                    if (
+                        ! isset( $_FILES['pct_csv'] )
+                        || ! is_array( $_FILES['pct_csv'] )
+                        || empty( $_FILES['pct_csv']['tmp_name'] )
+                    ) {
+                        $errors[] = __( 'Invalid CSV upload.', 'paint-tracker-and-mixing-helper' );
+                    } else {
+                        $uploaded_file = wp_handle_upload(
+                            $_FILES['pct_csv'], // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+                            [
+                                'test_form' => false,
+                                'mimes'     => [
+                                    'csv' => 'text/csv',
+                                ],
+                            ]
+                        );
+                    }
 
                     if ( isset( $uploaded_file['error'] ) ) {
                         $errors[] = $uploaded_file['error'];
@@ -1869,8 +1906,18 @@ if ( ! class_exists( 'PCT_Paint_Table_Plugin' ) ) {
 
             // OPTIONAL FILTERS (only used if you add them to the form):
             // Limit by range
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing
-            $export_range = isset( $_POST['pct_export_range'] ) ? absint( wp_unslash( $_POST['pct_export_range'] ) ) : 0;
+            $export_range = 0;
+            
+            if ( isset( $_POST['pct_export_nonce'] ) ) {
+                $export_nonce = sanitize_text_field( wp_unslash( $_POST['pct_export_nonce'] ) );
+                if ( wp_verify_nonce( $export_nonce, 'pct_export_paints' ) ) {
+                    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+                    $export_range = isset( $_POST['pct_export_range'] )
+                        ? absint( wp_unslash( $_POST['pct_export_range'] ) )
+                        : 0;
+                }
+            }
+
             if ( $export_range ) {
                 $args['tax_query'] = [
                     [
